@@ -62,10 +62,10 @@ int main()
         perror("socket 1 failed");
         exit(EXIT_FAILURE);
     }
-    if (setsockopt(listen_fd1, SOL_SOCKET, SO_REUSEADDR, &opt1, sizeof(opt1))) {
-        perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
-        exit(EXIT_FAILURE);
-    }
+    // if (setsockopt(listen_fd1, SOL_SOCKET, SO_REUSEADDR, &opt1, sizeof(opt1))) {
+    //     perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
+    //     exit(EXIT_FAILURE);
+    // }
 
     address1.sin_family = AF_INET;
     address1.sin_addr.s_addr = INADDR_ANY;
@@ -90,10 +90,10 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    if (setsockopt(listen_fd2, SOL_SOCKET, SO_REUSEADDR, &opt2, sizeof(opt2))) {
-        perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
-        exit(EXIT_FAILURE);
-    }
+    // if (setsockopt(listen_fd2, SOL_SOCKET, SO_REUSEADDR, &opt2, sizeof(opt2))) {
+    //     perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
+    //     exit(EXIT_FAILURE);
+    // }
 
     address2.sin_family = AF_INET;
     address2.sin_addr.s_addr = INADDR_ANY;
