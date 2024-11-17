@@ -27,10 +27,12 @@ void send_message(int fd, char* msg) {
     send(fd, msg, strlen(msg)+1, 0);
 }
 
-void initializeBoard(Player *player, int width, int height);
+void initializePlayer(Player *player, int width, int height);
 int processInitialize(Player * player, char *buffer);
 int placeShips(Player *player);
+int placeShip(Player *player, int piece_type, int piece_rotation, int column, int row);
 void clearShips(Player *player);
+int checkBounds(Player *player, int piece_type, int piece_rotation, int column, int row);
 
 int main()
 {
@@ -150,8 +152,8 @@ int main()
                     read(conn_fd2, buffer, BUFFER_SIZE);
                     if(strcmp(buffer, "B")) send_message(conn_fd2, "ERR 100");
                     else {
-                        initializeBoard(&p1, width, height);
-                        initializeBoard(&p2, width, height);
+                        initializePlayer(&p1, width, height);
+                        initializePlayer(&p2, width, height);
                         begin = true;
                         turn = 1;
                         send_message(conn_fd2, "A");
@@ -164,15 +166,13 @@ int main()
             switch(turn) {
                 case 1:
                     read(conn_fd1, buffer, BUFFER_SIZE);
-                    if(buffer[0] != 'I') send_message(conn_fd1, "ERR 101"); //not a I request
+                    if(buffer[0] != 'I') send_message(conn_fd1, "ERR 101"); //not an I request
                     else {
-                        int res = initializePacket(&p1, buffer);
+                        int res = processInitialize(&p1, buffer);
                         if(res) {
-                            char temp[1];
-                            sprintf(temp, "%d", res);
-                            char e[] = "ERR ";
-                            send_message(conn_fd1, strcat(e, temp));
-                            free(temp);
+                            char temp[20];
+                            sprintf(temp, "ERR %d", res);
+                            send_message(conn_fd1, temp);
                         }
                     }
                     break;
@@ -192,7 +192,7 @@ int main()
 
 
 //ALSO initializes player fields
-void initializeBoard(Player *player, int width, int height) {
+void initializePlayer(Player *player, int width, int height) {
     player -> board = malloc(height * 8);
     player -> height = height;
     player -> width = width;
@@ -204,8 +204,6 @@ void initializeBoard(Player *player, int width, int height) {
 
 
 int processInitialize(Player *player, char *buffer) {
-    
-    
     char *p = (buffer + 2);
     int piece_type, piece_rotation, column, row;
     //check if there's more than 20 values
@@ -222,23 +220,29 @@ int processInitialize(Player *player, char *buffer) {
     int cur_error = 999;
     for(int i = 0; i < 5; i++) {
         int value = sscanf(p, "%d %d %d %d", &piece_type, &piece_rotation, &column, &row);
-        if(piece_type <= 0 || piece_type > 7) cur_error = 300;
-        if(piece_rotation <= 0 || piece_rotation > 4) {
+        if(value != 4) return 201;
+        if(piece_type <= 0 || piece_type > 7) return 300;
+        else if(piece_rotation <= 0 || piece_rotation > 4) {
             if(cur_error > 301) cur_error = 301;
         } 
-        if(column < 0 || column >= player -> width) {
+        else if(column < 0 || column >= player -> width) {
             if(cur_error > 302) cur_error = 302; 
         }
-        if(row < 0 || row >= player -> height) {
+        else if(row < 0 || row >= player -> height) {
             if(cur_error > 302) cur_error = 302;
-        } 
-        if(cur_error != 999) return cur_error;
-
+        }
+        else {
+            if(checkBounds(player, piece_type, piece_rotation, column, row)) {
+                if(cur_error > 302) cur_error = 302;
+            }
+        }
         for(int i = 0; i < 4; i++) {
             while(*p != ' ') p++;
             p++;
         }
     }
+    if(cur_error != 999) return cur_error;
+    
     
     p = (buffer + 2);
 
@@ -258,7 +262,154 @@ int processInitialize(Player *player, char *buffer) {
     return 0;
 }
 
-
+int checkBounds(Player *player, int piece_type, int piece_rotation, int column, int row) {
+    int width = player->width; int height = player->height;
+    switch(piece_type) {
+        case 1:
+            for(int r = 0; r < 2; r++) {
+                if(r+row >= height) return 302;  
+                if(r+column >= width) return 302;
+            }
+            break;
+        case 2:
+            if(piece_rotation == 1 || piece_rotation == 3) {
+                if(column >= width) return 302;
+                for(int r = 0; r < 4; r++) {
+                    if(r+row >= height) return 302;
+                }
+            }
+            else {
+                if(row >= height) return 302;
+                for(int c = 0; c < 4; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            break;
+        case 3:
+            if(piece_rotation == 1 || piece_rotation == 3) {
+                for(int r = 0; r < 2; r++) {
+                    if(r+row-1 >= height) return 302;
+                }
+                for(int c = 0; c < 3; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            else {
+                for(int r = 0; r < 3; r++) {
+                    if(r+row >= height) return 302;
+                }
+                for(int c = 0; c < 2; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            break;
+        //shape 4
+        case 4:
+            if(piece_rotation == 1 || piece_rotation == 3) {
+                for(int r = 0; r < 3; r++) {
+                    if(r+row >= height) return 302;
+                }
+                for(int c = 0; c < 2; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            if(piece_rotation == 2) {
+                for(int r = 0; r < 2; r++) {
+                    if(r+row >= height) return 302;
+                }
+                for(int c = 0; c < 3; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            else {
+                for(int r = 0; r < 2; r++) {
+                    if(r+row-1 >= height) return 302;
+                }
+                for(int c = 0; c < 3; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }   
+            break;
+        case 5:
+            if(piece_rotation == 1 || piece_rotation == 3) {
+                for(int r = 0; r < 2; r++) {
+                    if(r+row >= height) return 302;
+                }
+                for(int c = 0; c < 3; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            else {
+                for(int r = 0; r < 3; r++) {
+                    if(r+row-1 >= height) return 302;
+                }
+                for(int c = 0; c < 2; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            break;
+        case 6:
+            if(piece_rotation == 2 || piece_rotation == 4) {
+                for(int r = 0; r < 2; r++) {
+                    if(r+row >= height) return 302;
+                }
+                for(int c = 0; c < 3; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            else if(piece_rotation == 1) {
+                for(int r = 0; r < 3; r++) {
+                    if(r+row-2 >= height) return 302;
+                }
+                for(int c = 0; c < 2; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            else {
+                for(int r = 0; r < 3; r++) {
+                    if(r+row >= height) return 302;
+                }
+                for(int c = 0; c < 2; c++) {
+                    if(c+column >= width) return 302;
+                }
+            }
+            break;
+        default:
+            if(piece_rotation == 1 || piece_rotation == 3) {
+                for(int c = 0; c < 3; c++) {
+                    if(c+column >= width) return 302;
+                }
+                
+                if(piece_rotation == 1) {
+                    for(int r = 0; r < 2; r++) {
+                        if(r+row >= height) return 302;
+                    }
+                }
+                else {
+                    for(int r = 0; r < 2; r++) {
+                        if(r+row-1 >= height) return 302;
+                    }
+                }
+            }
+            //rotation 2 or 4
+            else {
+                for(int c = 0; c < 2; c++) {
+                    if(c+column >= width) return 302;
+                }
+                if(piece_rotation == 2) {
+                    for(int r = 0; r < 3; r++) {
+                        if(r+row-1 >= height) return 302;
+                    }
+                }
+                else {
+                    for(int r = 0; r < 3; r++) {
+                        if(r+row >= height) return 302;
+                    }
+                }
+            }
+    }
+    return 0;
+}
 
 int placeShips(Player *player) {
     int piece_type, piece_rotation, column, row;
@@ -270,6 +421,271 @@ int placeShips(Player *player) {
         
     }
 }
+int placeShip(Player *player, int piece_type, int piece_rotation, int column, int row) {
+    switch(piece_type) {
+        case 1:
+            for(int r = 0; r < 2; r++) {
+                for(int c = 0; c < 2; c++) {
+                    if(player->board[r+row][c+column] == 1) {
+                        clearShips(player);
+                        return 0;
+                    }
+                    player->board[r+row][c+column] = 1;
+                }
+            }
+            break;
+        case 2:
+            if(piece_rotation == 1 || piece_rotation == 3) {
+                for(int r = 0; r < 4; r++) {
+                    if(player->board[r+row][column] == 1) {
+                        clearShips(player);
+                        return 0;
+                    }
+                    player->board[r+row][column] = 1;
+                }
+            }
+            else {
+                for(int c = 0; c < 4; c++) {
+                    if(player->board[row][c+column] == 1) {
+                        clearShips(player);
+                        return 0;
+                    }
+                    player->board[row][c+column] = 1;
+                }
+            }
+            break;
+        case 3:
+            if(piece_rotation == 1 || piece_rotation == 3) {
+                for(int r = 0; r < 2; r++) {
+                    if(r == 0) {
+                        for(int c = 1; c < 3; c++) {
+                            if(player->board[r + row-1][c + column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row-1][c+column] = 1;
+                        }
+                    }
+                    else {
+                        for(int c = 0; c < 2; c++) {
+                            if(player->board[r + row-1][c + column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row-1][c+column] = 1;
+                        }
+                    }
+                    
+                }
+            }
+            //rotation 2 and 4
+            else {
+                for(int c = 0; c < 2; c++) {
+                    if(c == 0) {
+                        for(int r = 0; r < 2; r++) {
+                            if(player->board[r + row][c + column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row][c+column] = 1;
+                        }
+                    }
+                    else {
+                        for(int r = 1; r < 3; r++) {
+                            if(player->board[r + row][c + column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row][c+column] = 1;
+                        }
+                    }
+                }
+               
+            }
+            break;
+        //shape 4
+        case 4:
+            if(piece_rotation == 1) {
+                for(int c = 0; c < 2; c++) {
+                    if(c == 0) {
+                        for(int r = 0; r < 3; r++) {
+                            if(player->board[r + row][c + column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row][c+column] = 1;
+                        }
+                    }
+                    else {
+                        if(player->board[2+row][c+column] == 1) {
+                            clearShips(player);
+                            return 0;
+                        }
+                        player->board[2+row][c+column] = 1;
+                    }
+                }
+               
+            }
+            else if(piece_rotation == 2) {
+                for(int r = 0; r < 2; r++) {
+                    if(r == 0) {
+                        for(int c = 0; c < 3; c++) {
+                            if(player->board[r + row][c + column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row][c+column] = 1;
+                        }
+                    }
+                    else {
+                        if(player->board[r+row][column] == 1) {
+                            clearShips(player);
+                            return 0;
+                        }
+                        player->board[r+row][column] = 1;
+                    }
+                }
+            }
+            else if(piece_rotation == 3) {
+                 for(int c = 0; c < 2; c++) {
+                    if(c == 1) {
+                        for(int r = 0; r < 3; r++) {
+                            if(player->board[r + row][c + column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row][c+column] = 1;
+                        }
+                    }
+                    else {
+                        if(player->board[row][column] == 1) {
+                            clearShips(player);
+                            return 0;
+                        }
+                        player->board[row][column] = 1;
+                    }
+                }
+            }
+            else {
+                 for(int r = 0; r < 2; r++) {
+                    if(r == 1) {
+                        for(int c = 0; c < 3; c++) {
+                            if(player->board[r + row - 1][c + column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row-1][c+column] = 1;
+                        }
+                    }
+                    else {
+                        if(player->board[row-1][2+column] == 1) {
+                            clearShips(player);
+                            return 0;
+                        }
+                        player->board[row-1][2+column] = 1;
+                    }
+                }
+            }   
+            break;
+        case 5:
+            if(piece_rotation == 1 || piece_rotation == 3) {
+                for(int r = 0; r < 2; r++) {
+                    if(r == 0) {
+                        for(int c = 0; c < 2; c++) {
+                            if(player->board[r+row][c+column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row][c+column] = 1;
+                        } 
+                    }
+                    else {
+                        for(int c = 1; c < 3; c++) {
+                            if(player->board[r+row][c+column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row][c+column] = 1;
+                        }
+                    }
+                }
+            }
+            //rotations 2 and 4
+            else {
+                for(int c = 0; c < 2; c++) {
+                    if(c == 0) {
+                        for(int r = 0; r < 2; r++) {
+                            if(player->board[r+row][c+column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row][c+column] = 1;
+                        }
+                    }
+                    else {
+                        for(int r = 0; r< 2; r++) {
+                            if(player->board[r+row-1][c+column] == 1) {
+                                clearShips(player);
+                                return 0;
+                            }
+                            player->board[r+row-1][c+column] = 1;
+                        }
+                    }
+                }
+            }
+            break;
+        case 6:
+            switch(piece_rotation) {
+                case 1:
+                    break;
+                
+                case 2:
+                    break;
+                
+                case 3:
+                    break;
+                
+                default:
+            }
+            break;
+        default:
+            if(piece_rotation == 1 || piece_rotation == 3) {
+                for(int c = 0; c < 3; c++) {
+                    if(c+column >= width) return 302;
+                }
+                
+                if(piece_rotation == 1) {
+                    for(int r = 0; r < 2; r++) {
+                        if(r+row >= height) return 302;
+                    }
+                }
+                else {
+                    for(int r = 0; r < 2; r++) {
+                        if(r+row-1 >= height) return 302;
+                    }
+                }
+            }
+            //rotation 2 or 4
+            else {
+                for(int c = 0; c < 2; c++) {
+                    if(c+column >= width) return 302;
+                }
+                if(piece_rotation == 2) {
+                    for(int r = 0; r < 3; r++) {
+                        if(r+row-1 >= height) return 302;
+                    }
+                }
+                else {
+                    for(int r = 0; r < 3; r++) {
+                        if(r+row >= height) return 302;
+                    }
+                }
+            }
+    }
+    return 1;
+}
+
+
 void clearShips(Player *player) {
     for(int r = 0; r < 5; r++) {
         for(int c = 0; c < 4; c++) {
