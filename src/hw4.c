@@ -56,23 +56,42 @@ int main()
     int opt1 = 0; int opt2 = 0;
 
     // Create socket
-    if ((listen_fd1 = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    if ((listen_fd1 = socket(AF_INET, SOCK_STREAM, 0)) <= 0)
     {
         perror("socket 1 failed");
         exit(EXIT_FAILURE);
     }
-    // if (setsockopt(listen_fd1, SOL_SOCKET, SO_REUSEADDR, &opt1, sizeof(opt1))) {
-    //     perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
-    //     exit(EXIT_FAILURE);
-    // }
+    if ((listen_fd2 = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        perror("socket 2 failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (setsockopt(listen_fd1, SOL_SOCKET, SO_REUSEADDR, &opt1, sizeof(opt1))) {
+        perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
+        exit(EXIT_FAILURE);
+    }
+    if (setsockopt(listen_fd2, SOL_SOCKET, SO_REUSEADDR, &opt2, sizeof(opt2))) {
+        perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
+        exit(EXIT_FAILURE);
+    }
 
     address1.sin_family = AF_INET;
     address1.sin_addr.s_addr = INADDR_ANY;
     address1.sin_port = htons(PORT1);
 
+    address2.sin_family = AF_INET;
+    address2.sin_addr.s_addr = INADDR_ANY;
+    address2.sin_port = htons(PORT2);
+
     if (bind(listen_fd1, (struct sockaddr *)&address1, sizeof(address1)) < 0)
     {
         perror("[Server] bind() failed for port 2201.");
+        exit(EXIT_FAILURE);
+    }
+    if (bind(listen_fd2, (struct sockaddr *)&address2, sizeof(address2)) < 0)
+    {
+        perror("[Server] bind() failed for port 2202.");
         exit(EXIT_FAILURE);
     }
 
@@ -83,27 +102,6 @@ int main()
     }
     printf("[Server] Running on port %d\n", PORT1);
 
-    if ((listen_fd2 = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-    {
-        perror("socket 2 failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // if (setsockopt(listen_fd2, SOL_SOCKET, SO_REUSEADDR, &opt2, sizeof(opt2))) {
-    //     perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    address2.sin_family = AF_INET;
-    address2.sin_addr.s_addr = INADDR_ANY;
-    address2.sin_port = htons(PORT2);
-
-    if (bind(listen_fd2, (struct sockaddr *)&address2, sizeof(address2)) < 0)
-    {
-        perror("[Server] bind() failed for port 2202.");
-        exit(EXIT_FAILURE);
-    }
-    
     if (listen(listen_fd2, 1) < 0)
     {
         perror("[Server] listen() failed for port 2202.");
@@ -111,14 +109,15 @@ int main()
     }
     printf("[Server] Running on port %d\n", PORT2);
 
+  
 
-    if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&address1, &addrlen1)) < 0)
+    if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&address1, (socklen_t *)&addrlen1)) < 0)
     {
         perror("[Server] accept() failed for port 2201.");
         exit(EXIT_FAILURE);
     }
 
-    if ((conn_fd2 = accept(listen_fd2, (struct sockaddr *)&address2, &addrlen2)) < 0)
+    if ((conn_fd2 = accept(listen_fd2, (struct sockaddr *)&address2, (socklen_t *)&addrlen2)) < 0)
     {
         perror("[Server] accept() failed for port 2202.");
         exit(EXIT_FAILURE);
