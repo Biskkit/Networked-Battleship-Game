@@ -66,3 +66,5 @@ test_detail.xml
 tests/output
 images/*.ppm
 ./*.ppm
+server
+client
