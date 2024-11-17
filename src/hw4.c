@@ -21,7 +21,6 @@ typedef struct Player {
     int width;
     int height;
     int pieces[5][4]; //stores initial information about pieces being placed
-
     int ships_remaining;
     Shot *shot_history;
     int num_shots;
@@ -44,7 +43,7 @@ void clearBoard(Player *player);
 int checkBounds(Player *player, int piece_type, int piece_rotation, int column, int row);\
 int numOfShips(Player *pOther);
 int alreadyShot(Player *pShooting, int row, int col);
-
+void freePlayer(Player *player);
 
 int main()
 {
@@ -132,9 +131,8 @@ int main()
     Player p1, p2;
     int width, height;
     bool gameOver = false;
-    while (1)
+    while (!gameOver)
     {
-        if(gameOver) break;
         // printf("in while loop");
         memset(buffer, 0, BUFFER_SIZE);
         //checks if game has begun yet or not, if not, then only check for "B" packets
@@ -305,11 +303,40 @@ int main()
     }
     printf("[Server] Shutting down.\n");
 
+    freePlayer(&p1);
+    freePlayer(&p2);
     close(conn_fd1);
     close(listen_fd1);
     close(conn_fd2);
     close(listen_fd2);
+
     return EXIT_SUCCESS;
+}
+
+void freePlayer(Player *player) {
+    free(player -> shot_history);
+    int height = player -> height;
+    for(int i = 0; i < height; i++) {
+        free(player->board[i]);
+    }
+    free(player->board);
+    free(player);
+}
+
+void initializePlayer(Player *player, int width, int height) {
+    player = malloc(sizeof(Player));
+    player -> board = malloc(player -> height * 8);
+    player -> height = height;
+    player -> width = width;
+    player -> shot_history = malloc(12 * width * height);
+    player -> ships_remaining = 5;
+    player -> num_shots = 0;
+    clearPieces(player);
+
+    for(int i = 0; i < height; i++) {
+        player->board[i] = malloc(width * 4);
+    }
+    clearBoard(player);
 }
 
 int processShoot(Player *pShooting, Player *pOther, char *buffer) {
@@ -455,22 +482,8 @@ void processQuery(Player *player, char *str) {
 
 
 
-//ALSO initializes player fields
-void initializePlayer(Player *player, int width, int height) {
-    player -> height = height;
-    player -> width = width;
-    player -> shot_history = malloc(12 * width * height);
-    player -> ships_remaining = 5;
-    player -> num_shots = 0;
-    for(int r = 0; r < 5; r++) {
-        for(int c = 0; c < 4; c++) {
-            player->pieces[r][c] = 0;
-        }
-    }
-    for(int i = 0; i < height; i++) {
-        player->board[i] = calloc(width, 4);
-    }
-}
+
+
 
 
 
