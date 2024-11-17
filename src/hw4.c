@@ -132,11 +132,12 @@ int main()
     bool gameOver = false;
     while (!gameOver)
     {
+
         // printf("in while loop");
         memset(buffer, 0, BUFFER_SIZE);
         //checks if game has begun yet or not, if not, then only check for "B" packets
         //This is all code for the BEGIN packet
-        if(turn) {
+        if(turn == 1) {
             read(conn_fd1, buffer, BUFFER_SIZE);
             if (strcmp(buffer, "F") == 0)
             {
@@ -155,13 +156,9 @@ int main()
                 send_message(conn_fd1, "H 1");
                 continue;
             }
-        }
-        memset(buffer, 0, BUFFER_SIZE);
-        
+        } 
         if(!begin) {
             if(turn == 1) {
-                read(conn_fd1, buffer, BUFFER_SIZE);
-                    
                 if(buffer[0] != 'B') send_message(conn_fd1, "ERR 100"); //not a B request
                 else if(sscanf(buffer, "B %d %d", &width, &height) != 2) {
                     width = 0; height = 0;
@@ -179,7 +176,6 @@ int main()
                 }
             }
             else {
-                read(conn_fd2, buffer, BUFFER_SIZE);
                     if(strcmp(buffer, "B")) send_message(conn_fd2, "ERR 100");
                     else {
                         initializePlayer(&p1, width, height);
