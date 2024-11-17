@@ -11,8 +11,11 @@
 #define BUFFER_SIZE 1024
 
 
+
 typedef struct Player {
     int** board;
+    int width;
+    int height;
     int pieces[5][4];
     int** shot_history;
     int num_shots;
@@ -25,6 +28,9 @@ void send_message(int fd, char* msg) {
 }
 
 void initializeBoard(Player *player, int width, int height);
+int processInitialize(Player * player, char *buffer);
+int placeShips(Player *player);
+void clearShips(Player *player);
 
 int main()
 {
@@ -153,6 +159,26 @@ int main()
             }
         }
         
+        //Code for INITIALIZE packet
+        else if(!initialize) {
+            switch(turn) {
+                case 1:
+                    read(conn_fd1, buffer, BUFFER_SIZE);
+                    if(buffer[0] != 'I') send_message(conn_fd1, "ERR 101"); //not a I request
+                    else {
+                        int res = initializePacket(&p1, buffer);
+                        if(res) {
+                            char temp[1];
+                            sprintf(temp, "%d", res);
+                            char e[] = "ERR ";
+                            send_message(conn_fd1, strcat(e, temp));
+                            free(temp);
+                        }
+                    }
+                    break;
+                default:
+            }
+        }
         
     }
     printf("[Server] Shutting down.\n");
@@ -164,11 +190,90 @@ int main()
     return EXIT_SUCCESS;
 }
 
+
+//ALSO initializes player fields
 void initializeBoard(Player *player, int width, int height) {
     player -> board = malloc(height * 8);
+    player -> height = height;
+    player -> width = width;
+    clearShips(player);
     for(int i = 0; i < height; i++) {
         player->board[i] = calloc(width, 4);
     }
 }
 
 
+int processInitialize(Player *player, char *buffer) {
+    
+    
+    char *p = (buffer + 2);
+    int piece_type, piece_rotation, column, row;
+    //check if there's more than 20 values
+    int i = 0;
+    while(*p != '\0') {
+        i++;
+        while(*p != ' ' && *p != '\0') {p++;}
+        if(*p != '\0') p++;
+    }
+
+    if(i != 20) return 201;
+
+    p = (buffer + 2);
+    int cur_error = 999;
+    for(int i = 0; i < 5; i++) {
+        int value = sscanf(p, "%d %d %d %d", &piece_type, &piece_rotation, &column, &row);
+        if(piece_type <= 0 || piece_type > 7) cur_error = 300;
+        if(piece_rotation <= 0 || piece_rotation > 4) {
+            if(cur_error > 301) cur_error = 301;
+        } 
+        if(column < 0 || column >= player -> width) {
+            if(cur_error > 302) cur_error = 302; 
+        }
+        if(row < 0 || row >= player -> height) {
+            if(cur_error > 302) cur_error = 302;
+        } 
+        if(cur_error != 999) return cur_error;
+
+        for(int i = 0; i < 4; i++) {
+            while(*p != ' ') p++;
+            p++;
+        }
+    }
+    
+    p = (buffer + 2);
+
+    for(int i = 0; i < 5; i++) {
+        int value = sscanf(p, "%d %d %d %d", &piece_type, &piece_rotation, &column, &row);
+        
+        player -> pieces[i][0] = piece_type;
+        player -> pieces[i][1] = piece_rotation;
+        player -> pieces[i][2] = column;
+        player -> pieces[i][3] = row;
+
+        for(int i = 0; i < 4; i++) {
+            while(*p != ' ') p++;
+            p++;
+        }
+    }
+    return 0;
+}
+
+
+
+int placeShips(Player *player) {
+    int piece_type, piece_rotation, column, row;
+    for(int r = 0; r < 5; r++) {
+        piece_type = player->pieces[r][0];
+        piece_rotation = player->pieces[r][1];
+        column = player->pieces[r][2];
+        row = player->pieces[r][3];
+        
+    }
+}
+void clearShips(Player *player) {
+    for(int r = 0; r < 5; r++) {
+        for(int c = 0; c < 4; c++) {
+            player->pieces[r][c] = 0;
+        }
+    }
+}
