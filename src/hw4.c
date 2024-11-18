@@ -77,11 +77,13 @@ int main()
     }
 
     address1.sin_family = AF_INET;
-    address1.sin_addr.s_addr = INADDR_ANY;
+    // address1.sin_addr.s_addr = INADDR_ANY;
+    inet_pton(AF_INET, "127.0.0.1", &address1.sin_addr);
     address1.sin_port = htons(PORT1);
 
     address2.sin_family = AF_INET;
-    address2.sin_addr.s_addr = INADDR_ANY;
+    // address2.sin_addr.s_addr = INADDR_ANY;
+    inet_pton(AF_INET, "127.0.0.1", &address2.sin_addr);
     address2.sin_port = htons(PORT2);
 
     if (bind(listen_fd1, (struct sockaddr *)&address1, (socklen_t)sizeof(address1)) < 0)
@@ -113,16 +115,18 @@ int main()
     int client1len, client2len;
     client1len = sizeof(client1);
     client2len = sizeof(client2);
-    if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len)) < 0)
-    {
-        perror("[Server] accept() failed for port 2201.");
-        exit(EXIT_FAILURE);
-    }
-    if ((conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len)) < 0)
-    {
-        perror("[Server] accept() failed for port 2202.");
-        exit(EXIT_FAILURE);
-    }
+    conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len);
+    conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len);
+    // if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len)) < 0)
+    // {
+    //     perror("[Server] accept() failed for port 2201.");
+    //     exit(EXIT_FAILURE);
+    // }
+    // if ((conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len)) < 0)
+    // {
+    //     perror("[Server] accept() failed for port 2202.");
+    //     exit(EXIT_FAILURE);
+    // }
     
     printf("after both accepts");
     
