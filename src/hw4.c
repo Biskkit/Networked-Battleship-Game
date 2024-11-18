@@ -116,9 +116,11 @@ int main()
     client1len = sizeof(client1);
     client2len = sizeof(client2);
     conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len);
+    // read(conn_fd1, buffer, BUFFER_SIZE);
+
+    printf("Client 1 accepted");
     conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len);
-    close(listen_fd1);
-    close(listen_fd2);
+    
     // if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len)) < 0)
     // {
     //     perror("[Server] accept() failed for port 2201.");
@@ -130,7 +132,7 @@ int main()
     //     exit(EXIT_FAILURE);
     // }
     
-    printf("after both accepts");
+    // printf("after both accepts");
     
 
     bool begin = false;
@@ -138,6 +140,7 @@ int main()
     int turn = 1;
     Player p1, p2;
     int width, height;
+    width = 0; height = 0;
     bool gameOver = false;
     while (!gameOver)
     {
@@ -154,9 +157,13 @@ int main()
             {
                 gameOver = true;
                 // send_message(conn_fd1, "H 0");
+                
                 send(conn_fd1, "H 0", 4, 0);
-                // send_message(conn_fd2, "H 1");
+                read(conn_fd2, buffer, BUFFER_SIZE);
                 send(conn_fd2, "H 1", 4, 0);
+                close(conn_fd1);
+                close(conn_fd2);
+                // send_message(conn_fd2, "H 1");
                 continue;
             }
             if(!begin) {
@@ -176,7 +183,7 @@ int main()
                     }
                 }
             }
-            if(!initialize) {
+            else if(!initialize) {
                 if(buffer[0] != 'I') send(conn_fd1, "ERR 101", 8, 0);//send_message(conn_fd1, "ERR 101"); //not an I request
                 else {
                     int res = processInitialize(&p1, buffer);
@@ -186,15 +193,18 @@ int main()
                         send(conn_fd1, temp, 8, 0);
                         //send_message(conn_fd1, temp);
                     }
-                    res = placeShips(&p1);
-                    if(!res) {
-                        send(conn_fd1, "ERR 303", 8, 0);//send_message(conn_fd1, "ERR 303"); 
-                    }
                     else {
-                        turn = 2;
-                        memset(buffer, 0, BUFFER_SIZE);
-                        send(conn_fd1, "A", 2, 0);
+                        res = placeShips(&p1);
+                        if(!res) {
+                            send(conn_fd1, "ERR 303", 8, 0);//send_message(conn_fd1, "ERR 303"); 
+                        }
+                        else {
+                            turn = 2;
+                            memset(buffer, 0, BUFFER_SIZE);
+                            send(conn_fd1, "A", 2, 0);
+                        }
                     }
+                    
                 }
             }
 
@@ -236,10 +246,12 @@ int main()
             {
                 gameOver = true;
                 send(conn_fd2, "H 0", 4, 0);//send_message(conn_fd2, "H 0");
-                send(conn_fd2, "H 1", 4, 0);// send_message(conn_fd1, "H 1");
+                read(conn_fd1, buffer, BUFFER_SIZE);
+                send(conn_fd1, "H 1", 4, 0);// send_message(conn_fd1, "H 1");
                 continue;
             }
             if(!begin) {
+                // int width, height;
                 if(strcmp(buffer, "B")) send(conn_fd2, "ERR 100", 8, 0);//send_message(conn_fd2, "ERR 100");
                 else {
                     initializePlayer(&p1, width, height);
@@ -249,7 +261,7 @@ int main()
                     send(conn_fd2, "A", 2, 0);// send_message(conn_fd2, "A");
                 }
             }
-            if(!initialize) {
+            else if(!initialize) {
                 if(buffer[0] != 'I') send(conn_fd2, "ERR 101", 8, 0);//send_message(conn_fd2, "ERR 101"); //not an I request
                 else {
                     int res = processInitialize(&p2, buffer);
@@ -258,15 +270,17 @@ int main()
                         sprintf(temp, "ERR %d", res);
                         send(conn_fd2, temp, strlen(temp)+1, 0);
                     }
-                    res = placeShips(&p2);
-                    if(!res) {
-                        send(conn_fd2, "ERR 303", 8, 0);//send_message(conn_fd2, "ERR 303"); 
-                    }
                     else {
-                        turn = 1;
-                        memset(buffer, 0, BUFFER_SIZE);
-                        initialize = true;
-                        send(conn_fd2, "A", 2, 0);//send_message(conn_fd2, "A");
+                        res = placeShips(&p2);
+                        if(!res) {
+                            send(conn_fd2, "ERR 303", 8, 0);//send_message(conn_fd2, "ERR 303"); 
+                        }
+                        else {
+                            turn = 1;
+                            memset(buffer, 0, BUFFER_SIZE);
+                            initialize = true;
+                            send(conn_fd2, "A", 2, 0);//send_message(conn_fd2, "A");
+                        }
                     }
                 }
             }
@@ -307,9 +321,10 @@ int main()
     freePlayer(&p1);
     freePlayer(&p2);
     
-    close(conn_fd1);
-    close(conn_fd2);
-   
+    // close(conn_fd1);
+    // close(conn_fd2);
+    close(listen_fd1);
+    close(listen_fd2);
 
     return EXIT_SUCCESS;
 }
@@ -406,6 +421,7 @@ int alreadyShot(Player *pShooting, int row, int col) {
 }
 
 int processInitialize(Player *player, char *buffer) {
+    if(strlen(buffer) < 3) return 201;
     char *p = (buffer + 2);
     int piece_type, piece_rotation, column, row;
     //check if there's more than 20 values
@@ -427,19 +443,14 @@ int processInitialize(Player *player, char *buffer) {
         else if(piece_rotation <= 0 || piece_rotation > 4) {
             if(cur_error > 301) cur_error = 301;
         } 
-        else if(column < 0 || column >= player -> width) {
-            if(cur_error > 302) cur_error = 302; 
-        }
-        else if(row < 0 || row >= player -> height) {
-            if(cur_error > 302) cur_error = 302;
-        }
         else {
             if(checkBounds(player, piece_type, piece_rotation, column, row)) {
                 if(cur_error > 302) cur_error = 302;
             }
         }
         for(int i = 0; i < 4; i++) {
-            while(*p != ' ') p++;
+            while(*p != ' ' && *p != '\0') p++;
+            if(*p == '\n') break;
             p++;
         }
     }
@@ -451,13 +462,14 @@ int processInitialize(Player *player, char *buffer) {
     for(int i = 0; i < 5; i++) {
         int value = sscanf(p, "%d %d %d %d", &piece_type, &piece_rotation, &column, &row);
         
-        player -> pieces[i][0] = piece_type;
-        player -> pieces[i][1] = piece_rotation;
-        player -> pieces[i][2] = column;
-        player -> pieces[i][3] = row;
+    //     player -> pieces[i][0] = piece_type;
+    //     player -> pieces[i][1] = piece_rotation;
+    //     player -> pieces[i][2] = column;
+    //     player -> pieces[i][3] = row;
 
         for(int i = 0; i < 4; i++) {
-            while(*p != ' ') p++;
+            while(*p != ' ' && *p != '\0') p++;
+            if(*p == '\0') break;
             p++;
         }
     }
@@ -490,147 +502,96 @@ void processQuery(Player *player, char *str) {
 
 int checkBounds(Player *player, int piece_type, int piece_rotation, int column, int row) {
     int width = player->width; int height = player->height;
+    if(column < 0 || column >= player -> width) return 302;
+    if(row < 0 || row >= player->height) return 302;
     switch(piece_type) {
         case 1:
-            for(int r = 0; r < 2; r++) {
-                if(r+row >= height) return 302;  
-                if(r+column >= width) return 302;
-            }
+            if(row > height-2) return 302;  
+            if(column > width-2) return 302;
             break;
         case 2:
             if(piece_rotation == 1 || piece_rotation == 3) {
                 if(column >= width) return 302;
-                for(int r = 0; r < 4; r++) {
-                    if(r+row >= height) return 302;
-                }
+                if(row > height-4) return 302;
             }
             else {
                 if(row >= height) return 302;
-                for(int c = 0; c < 4; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(column > width-4) return 302;
+                
             }
             break;
         case 3:
             if(piece_rotation == 1 || piece_rotation == 3) {
-                for(int r = 0; r < 2; r++) {
-                    if(r+row-1 >= height) return 302;
-                }
-                for(int c = 0; c < 3; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(row - 1 < 0) return 302;
+                if(row - 1 > height - 2) return 302;
+                if(column > width - 3) return 302;
             }
             else {
-                for(int r = 0; r < 3; r++) {
-                    if(r+row >= height) return 302;
-                }
-                for(int c = 0; c < 2; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(row > height - 3) return 302;
+                if(column > width - 2) return 302;
             }
             break;
         //shape 4
         case 4:
             if(piece_rotation == 1 || piece_rotation == 3) {
-                for(int r = 0; r < 3; r++) {
-                    if(r+row >= height) return 302;
-                }
-                for(int c = 0; c < 2; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(row > height-3) return 302;
+                if(column > width-2) return 302;
             }
             if(piece_rotation == 2) {
-                for(int r = 0; r < 2; r++) {
-                    if(r+row >= height) return 302;
-                }
-                for(int c = 0; c < 3; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(column > width - 3) return 302;
+                if(row > height - 2) return 302;
             }
             else {
-                for(int r = 0; r < 2; r++) {
-                    if(r+row-1 >= height) return 302;
-                }
-                for(int c = 0; c < 3; c++) {
-                    if(c+column >= width) return 302;
-                }
+               if(column > width - 3) return 302;
+               if(row - 1 < 0) return 302;
+               if(row-1 > height-2) return 302;
             }   
             break;
         case 5:
             if(piece_rotation == 1 || piece_rotation == 3) {
-                for(int r = 0; r < 2; r++) {
-                    if(r+row >= height) return 302;
-                }
-                for(int c = 0; c < 3; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(column > width - 3) return 302;
+                if(row > height - 2) return 302;
             }
             else {
-                for(int r = 0; r < 3; r++) {
-                    if(r+row-1 >= height) return 302;
-                }
-                for(int c = 0; c < 2; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(column > width -2 ) return 302;
+                if(row - 1 < 0) return 302;
+                if(row-1 > height-3) return 302;
             }
             break;
         case 6:
             if(piece_rotation == 2 || piece_rotation == 4) {
-                for(int r = 0; r < 2; r++) {
-                    if(r+row >= height) return 302;
-                }
-                for(int c = 0; c < 3; c++) {
-                    if(c+column >= width) return 302;
-                }
+               if(column > width - 3) return 302;
+               if(row > height - 2) return 302;
             }
             else if(piece_rotation == 1) {
-                for(int r = 0; r < 3; r++) {
-                    if(r+row-2 >= height) return 302;
-                }
-                for(int c = 0; c < 2; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(column > width -2) return 302;
+                if(row - 2 < 0) return 302;
             }
             else {
-                for(int r = 0; r < 3; r++) {
-                    if(r+row >= height) return 302;
-                }
-                for(int c = 0; c < 2; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(column > width -2) return 302;
+                if(row + 3 > height) return 302;
             }
             break;
         default:
             if(piece_rotation == 1 || piece_rotation == 3) {
-                for(int c = 0; c < 3; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(column + 3 > width) return 302;
                 
                 if(piece_rotation == 1) {
-                    for(int r = 0; r < 2; r++) {
-                        if(r+row >= height) return 302;
-                    }
+                    if(row + 1 > height) return 302;
                 }
                 else {
-                    for(int r = 0; r < 2; r++) {
-                        if(r+row-1 >= height) return 302;
-                    }
+                    if(row - 1 < 0) return 302;
                 }
             }
             //rotation 2 or 4
             else {
-                for(int c = 0; c < 2; c++) {
-                    if(c+column >= width) return 302;
-                }
+                if(column + 2 > width) return 302;
                 if(piece_rotation == 2) {
-                    for(int r = 0; r < 3; r++) {
-                        if(r+row-1 >= height) return 302;
-                    }
+                    if(row - 1 < 0) return 302;
+                    if(row + 2 > height) return 302;
                 }
                 else {
-                    for(int r = 0; r < 3; r++) {
-                        if(r+row >= height) return 302;
-                    }
+                    if(row + 3 > height) return 302;
                 }
             }
     }
