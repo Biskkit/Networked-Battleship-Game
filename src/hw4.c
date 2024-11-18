@@ -28,9 +28,9 @@ typedef struct Player {
 } Player;
 
 //make sure char* msg is always a string literal, or make sure to add the null-terminator
-void send_message(int fd, char* msg) {
-    send(fd, msg, strlen(msg)+1, 0);
-}
+// void send_message(int fd, char* msg) {
+//     send(fd, msg, strlen(msg)+1, 0);
+// }
 
 void initializePlayer(Player *player, int width, int height);
 void processQuery(Player *player, char *str);
@@ -151,44 +151,47 @@ int main()
             if (strcmp(buffer, "F") == 0)
             {
                 gameOver = true;
-                send_message(conn_fd1, "H 0");
-                send_message(conn_fd2, "H 1");
+                // send_message(conn_fd1, "H 0");
+                send(conn_fd1, "H 0", 4, 0);
+                // send_message(conn_fd2, "H 1");
+                send(conn_fd2, "H 1", 4, 0);
                 continue;
             }
             if(!begin) {
-                if(buffer[0] != 'B') send_message(conn_fd1, "ERR 100"); //not a B request
+                if(buffer[0] != 'B') send(conn_fd1, "ERR 100", 8, 0);//send_message(conn_fd1, "ERR 100"); //not a B request
                 else if(sscanf(buffer, "B %d %d", &width, &height) != 2) {
                     width = 0; height = 0;
-                    send_message(conn_fd1, "ERR 200"); //not valid parameters of B request
+                    send(conn_fd1, "ERR 200", 8, 0);//send_message(conn_fd1, "ERR 200"); //not valid parameters of B request
                 } 
                 else {
                     if(width < 10 || height < 10) {
                         width = 0; height = 0; //just in case, height and width are set back to 0
-                        send_message(conn_fd1, "ERR 200"); //parameters are invalid size (at least 10x10)
+                        send(conn_fd1, "ERR 200", 8, 0);//send_message(conn_fd1, "ERR 200"); //parameters are invalid size (at least 10x10)
                     } 
                     else {
                         turn = 2;
-                        send_message(conn_fd1, "A"); //if everything's good, then height and width are set correct
+                        send(conn_fd1, "A", 2, 0); //if everything's good, then height and width are set correct
                     }
                 }
             }
             if(!initialize) {
-                if(buffer[0] != 'I') send_message(conn_fd1, "ERR 101"); //not an I request
+                if(buffer[0] != 'I') send(conn_fd1, "ERR 101", 8, 0);//send_message(conn_fd1, "ERR 101"); //not an I request
                 else {
                     int res = processInitialize(&p1, buffer);
                     if(res) {
                         char temp[20];
                         sprintf(temp, "ERR %d", res);
-                        send_message(conn_fd1, temp);
+                        send(conn_fd1, temp, 8, 0);
+                        //send_message(conn_fd1, temp);
                     }
                     res = placeShips(&p1);
                     if(!res) {
-                        send_message(conn_fd1, "ERR 303"); 
+                        send(conn_fd1, "ERR 303", 8, 0);//send_message(conn_fd1, "ERR 303"); 
                     }
                     else {
                         turn = 2;
                         memset(buffer, 0, BUFFER_SIZE);
-                        send_message(conn_fd1, "A");
+                        send(conn_fd1, "A", 2, 0);
                     }
                 }
             }
@@ -198,14 +201,14 @@ int main()
                 if(strcmp(buffer, "Q") == 0) {
                     memset(buffer, 0, BUFFER_SIZE);
                     processQuery(&p1, buffer);
-                    send_message(conn_fd1, buffer);
+                    send(conn_fd1, buffer, strlen(buffer)+1, 0);
                 }
                 else if(buffer[0] == 'S') {
                     int res = processShoot(&p1, &p2, buffer);
                     char temp[20];
                     if(res) {
                         sprintf(temp, "ERR %d", res);
-                        send_message(conn_fd1, temp);
+                        send(conn_fd1, temp, 8, 0);
                     }
                     //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
                     else {
@@ -213,12 +216,12 @@ int main()
                         int ships = p1.ships_remaining;
                         sprintf(temp, "R %d %c", ships, result);
                         int turn = 2;
-                        send_message(conn_fd1, temp);
+                        send(conn_fd1, temp, strlen(temp)+1, 0);
                     }
                 }
                 //if none, then it's invalid
                 else {
-                    send_message(conn_fd1, "ERR 102");
+                    send(conn_fd1, "ERR 102", 8, 0);//send_message(conn_fd1, "ERR 102");
                 }
             }   
             
@@ -230,38 +233,38 @@ int main()
             if (strcmp(buffer, "F") == 0)
             {
                 gameOver = true;
-                send_message(conn_fd2, "H 0");
-                send_message(conn_fd1, "H 1");
+                send(conn_fd2, "H 0", 4, 0);//send_message(conn_fd2, "H 0");
+                send(conn_fd2, "H 1", 4, 0);// send_message(conn_fd1, "H 1");
                 continue;
             }
             if(!begin) {
-                if(strcmp(buffer, "B")) send_message(conn_fd2, "ERR 100");
+                if(strcmp(buffer, "B")) send(conn_fd2, "ERR 100", 8, 0);//send_message(conn_fd2, "ERR 100");
                 else {
                     initializePlayer(&p1, width, height);
                     initializePlayer(&p2, width, height);
                     begin = true;
                     turn = 1;
-                    send_message(conn_fd2, "A");
+                    send(conn_fd2, "A", 2, 0);// send_message(conn_fd2, "A");
                 }
             }
             if(!initialize) {
-                if(buffer[0] != 'I') send_message(conn_fd2, "ERR 101"); //not an I request
+                if(buffer[0] != 'I') send(conn_fd2, "ERR 101", 8, 0);//send_message(conn_fd2, "ERR 101"); //not an I request
                 else {
                     int res = processInitialize(&p2, buffer);
                     if(res) {
                         char temp[20];
                         sprintf(temp, "ERR %d", res);
-                        send_message(conn_fd2, temp);
+                        send(conn_fd2, temp, strlen(temp)+1, 0);
                     }
                     res = placeShips(&p2);
                     if(!res) {
-                        send_message(conn_fd2, "ERR 303"); 
+                        send(conn_fd2, "ERR 303", 8, 0);//send_message(conn_fd2, "ERR 303"); 
                     }
                     else {
                         turn = 1;
                         memset(buffer, 0, BUFFER_SIZE);
                         initialize = true;
-                        send_message(conn_fd2, "A");
+                        send(conn_fd2, "A", 2, 0);//send_message(conn_fd2, "A");
                     }
                 }
             }
@@ -270,14 +273,14 @@ int main()
                 if(strcmp(buffer, "Q") == 0) {
                     memset(buffer, 0, BUFFER_SIZE);
                     processQuery(&p2, buffer);
-                    send_message(conn_fd2, buffer);
+                    send(conn_fd2, buffer, strlen(buffer)+1, 0);// send_message(conn_fd2, buffer);
                 }
                 else if(buffer[0] == 'S') {
                     int res = processShoot(&p2, &p1, buffer);
                     char temp[20];
                     if(res) {
                         sprintf(temp, "ERR %d", res);
-                        send_message(conn_fd2, temp);
+                        send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
                     }
                     //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
                     else {
@@ -285,12 +288,12 @@ int main()
                         int ships = p2.ships_remaining;
                         sprintf(temp, "R %d %c", ships, result);
                         int turn = 1;
-                        send_message(conn_fd2, temp);
+                        send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
                     }
                 }
                 //if none, then it's invalid
                 else {
-                    send_message(conn_fd2, "ERR 102");
+                    send(conn_fd2, "ERR 102", 8, 0);// send_message(conn_fd2, "ERR 102");
                 }
             }
 
