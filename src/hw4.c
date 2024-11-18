@@ -61,7 +61,7 @@ int main()
         perror("socket 1 failed");
         exit(EXIT_FAILURE);
     }
-    if ((listen_fd2 = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    if ((listen_fd2 = socket(AF_INET, SOCK_STREAM, 0)) <= 0)
     {
         perror("socket 2 failed");
         exit(EXIT_FAILURE);
@@ -118,7 +118,7 @@ int main()
     conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len);
     // read(conn_fd1, buffer, BUFFER_SIZE);
 
-    printf("Client 1 accepted");
+    printf("Client 1 accepted\n");
     conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len);
     
     // if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len)) < 0)
@@ -139,6 +139,7 @@ int main()
     bool initialize = false;
     int turn = 1;
     Player p1, p2;
+    bool initialized = false;
     int width, height;
     width = 0; height = 0;
     bool gameOver = false;
@@ -146,27 +147,33 @@ int main()
     {
 
         // printf("in while loop");
-        memset(buffer, 0, BUFFER_SIZE);
+        
         //checks if game has begun yet or not, if not, then only check for "B" packets
         //This is all code for the BEGIN packet
 
         //Player 1
         if(turn == 1) {
+            printf("\n");
+            printf("in turn 1\n");
+            printf("Buffer is %s\n", buffer);
+            
+            if(strcmp(buffer, "F") == 0) {
+                gameOver = true;
+                // read(conn_fd1, buffer, BUFFER_SIZE);
+                send(conn_fd1, "H 1", 4, 0);
+                continue;
+            }
+            memset(buffer, 0, BUFFER_SIZE);
             read(conn_fd1, buffer, BUFFER_SIZE);
             if (strcmp(buffer, "F") == 0)
             {
-                gameOver = true;
                 // send_message(conn_fd1, "H 0");
-                
                 send(conn_fd1, "H 0", 4, 0);
-                read(conn_fd2, buffer, BUFFER_SIZE);
-                send(conn_fd2, "H 1", 4, 0);
-                close(conn_fd1);
-                close(conn_fd2);
                 // send_message(conn_fd2, "H 1");
+                turn = 2;
                 continue;
             }
-            if(!begin) {
+            else if(!begin) {
                 if(buffer[0] != 'B') send(conn_fd1, "ERR 100", 8, 0);//send_message(conn_fd1, "ERR 100"); //not a B request
                 else if(sscanf(buffer, "B %d %d", &width, &height) != 2) {
                     width = 0; height = 0;
@@ -183,172 +190,191 @@ int main()
                     }
                 }
             }
-            else if(!initialize) {
-                if(buffer[0] != 'I') send(conn_fd1, "ERR 101", 8, 0);//send_message(conn_fd1, "ERR 101"); //not an I request
-                else {
-                    int res = processInitialize(&p1, buffer);
-                    if(res) {
-                        char temp[20];
-                        sprintf(temp, "ERR %d", res);
-                        send(conn_fd1, temp, 8, 0);
-                        //send_message(conn_fd1, temp);
-                    }
-                    else {
-                        res = placeShips(&p1);
-                        if(!res) {
-                            send(conn_fd1, "ERR 303", 8, 0);//send_message(conn_fd1, "ERR 303"); 
-                        }
-                        else {
-                            turn = 2;
-                            memset(buffer, 0, BUFFER_SIZE);
-                            send(conn_fd1, "A", 2, 0);
-                        }
-                    }
+            else {
+                turn = 2;
+            }
+        //     else if(!initialize) {
+        //         if(buffer[0] != 'I') send(conn_fd1, "ERR 101", 8, 0);//send_message(conn_fd1, "ERR 101"); //not an I request
+        //         else {
+        //             int res = processInitialize(&p1, buffer);
+        //             if(res) {
+        //                 char temp[20];
+        //                 sprintf(temp, "ERR %d", res);
+        //                 send(conn_fd1, temp, 8, 0);
+        //                 //send_message(conn_fd1, temp);
+        //             }
+        //             else {
+        //                 res = placeShips(&p1);
+        //                 if(!res) {
+        //                     send(conn_fd1, "ERR 303", 8, 0);//send_message(conn_fd1, "ERR 303"); 
+        //                 }
+        //                 else {
+        //                     turn = 2;
+        //                     memset(buffer, 0, BUFFER_SIZE);
+        //                     send(conn_fd1, "A", 2, 0);
+        //                 }
+        //             }
                     
-                }
+        //         }
             }
 
-            else {
-                //if it's a "Q" packet
-                if(strcmp(buffer, "Q") == 0) {
-                    memset(buffer, 0, BUFFER_SIZE);
-                    processQuery(&p1, buffer);
-                    send(conn_fd1, buffer, strlen(buffer)+1, 0);
-                }
-                else if(buffer[0] == 'S') {
-                    int res = processShoot(&p1, &p2, buffer);
-                    char temp[20];
-                    if(res) {
-                        sprintf(temp, "ERR %d", res);
-                        send(conn_fd1, temp, 8, 0);
-                    }
-                    //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
-                    else {
-                        char result = p1.shot_history[p1.num_shots-1].result;
-                        int ships = p1.ships_remaining;
-                        sprintf(temp, "R %d %c", ships, result);
-                        int turn = 2;
-                        send(conn_fd1, temp, strlen(temp)+1, 0);
-                    }
-                }
-                //if none, then it's invalid
-                else {
-                    send(conn_fd1, "ERR 102", 8, 0);//send_message(conn_fd1, "ERR 102");
-                }
-            }   
+        //     else {
+        //         //if it's a "Q" packet
+        //         if(strcmp(buffer, "Q") == 0) {
+        //             memset(buffer, 0, BUFFER_SIZE);
+        //             processQuery(&p1, buffer);
+        //             send(conn_fd1, buffer, strlen(buffer)+1, 0);
+        //         }
+        //         else if(buffer[0] == 'S') {
+        //             int res = processShoot(&p1, &p2, buffer);
+        //             char temp[20];
+        //             if(res) {
+        //                 sprintf(temp, "ERR %d", res);
+        //                 send(conn_fd1, temp, 8, 0);
+        //             }
+        //             //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
+        //             else {
+        //                 char result = p1.shot_history[p1.num_shots-1].result;
+        //                 int ships = p1.ships_remaining;
+        //                 sprintf(temp, "R %d %c", ships, result);
+        //                 int turn = 2;
+        //                 send(conn_fd1, temp, strlen(temp)+1, 0);
+        //             }
+        //         }
+        //         //if none, then it's invalid
+        //         else {
+        //             send(conn_fd1, "ERR 102", 8, 0);//send_message(conn_fd1, "ERR 102");
+        //         }
+        //     }   
             
-        }
+        // }
 
-        //Player 2
+        // //Player 2
         else {
+            printf("\n");
+            printf("in turn 2\n");
+            printf("Buffer is %s\n", buffer);
+            
+            if(strcmp(buffer, "F") == 0) {
+                gameOver = true;
+                // read(conn_fd2, buffer, BUFFER_SIZE);
+                send(conn_fd2, "H 1", 4, 0);
+                continue;
+            }
+            memset(buffer, 0, BUFFER_SIZE);
             read(conn_fd2, buffer, BUFFER_SIZE);
             if (strcmp(buffer, "F") == 0)
             {
-                gameOver = true;
                 send(conn_fd2, "H 0", 4, 0);//send_message(conn_fd2, "H 0");
-                read(conn_fd1, buffer, BUFFER_SIZE);
-                send(conn_fd1, "H 1", 4, 0);// send_message(conn_fd1, "H 1");
+                turn = 1;
                 continue;
             }
-            if(!begin) {
+            else if(!begin) {
                 // int width, height;
                 if(strcmp(buffer, "B")) send(conn_fd2, "ERR 100", 8, 0);//send_message(conn_fd2, "ERR 100");
                 else {
                     initializePlayer(&p1, width, height);
                     initializePlayer(&p2, width, height);
+                    printf("Players initialized %d x %d\n", width, height);
+                    initialized = true;
                     begin = true;
                     turn = 1;
                     send(conn_fd2, "A", 2, 0);// send_message(conn_fd2, "A");
                 }
             }
-            else if(!initialize) {
-                if(buffer[0] != 'I') send(conn_fd2, "ERR 101", 8, 0);//send_message(conn_fd2, "ERR 101"); //not an I request
-                else {
-                    int res = processInitialize(&p2, buffer);
-                    if(res) {
-                        char temp[20];
-                        sprintf(temp, "ERR %d", res);
-                        send(conn_fd2, temp, strlen(temp)+1, 0);
-                    }
-                    else {
-                        res = placeShips(&p2);
-                        if(!res) {
-                            send(conn_fd2, "ERR 303", 8, 0);//send_message(conn_fd2, "ERR 303"); 
-                        }
-                        else {
-                            turn = 1;
-                            memset(buffer, 0, BUFFER_SIZE);
-                            initialize = true;
-                            send(conn_fd2, "A", 2, 0);//send_message(conn_fd2, "A");
-                        }
-                    }
-                }
+        //     else if(!initialize) {
+        //         if(buffer[0] != 'I') send(conn_fd2, "ERR 101", 8, 0);//send_message(conn_fd2, "ERR 101"); //not an I request
+        //         else {
+        //             int res = processInitialize(&p2, buffer);
+        //             if(res) {
+        //                 char temp[20];
+        //                 sprintf(temp, "ERR %d", res);
+        //                 send(conn_fd2, temp, strlen(temp)+1, 0);
+        //             }
+        //             else {
+        //                 res = placeShips(&p2);
+        //                 if(!res) {
+        //                     send(conn_fd2, "ERR 303", 8, 0);//send_message(conn_fd2, "ERR 303"); 
+        //                 }
+        //                 else {
+        //                     turn = 1;
+        //                     memset(buffer, 0, BUFFER_SIZE);
+        //                     initialize = true;
+        //                     send(conn_fd2, "A", 2, 0);//send_message(conn_fd2, "A");
+        //                 }
+        //             }
+        //         }
             }
-            else {
-                //if it's a "Q" packet
-                if(strcmp(buffer, "Q") == 0) {
-                    memset(buffer, 0, BUFFER_SIZE);
-                    processQuery(&p2, buffer);
-                    send(conn_fd2, buffer, strlen(buffer)+1, 0);// send_message(conn_fd2, buffer);
-                }
-                else if(buffer[0] == 'S') {
-                    int res = processShoot(&p2, &p1, buffer);
-                    char temp[20];
-                    if(res) {
-                        sprintf(temp, "ERR %d", res);
-                        send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
-                    }
-                    //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
-                    else {
-                        char result = p2.shot_history[p2.num_shots-1].result;
-                        int ships = p2.ships_remaining;
-                        sprintf(temp, "R %d %c", ships, result);
-                        int turn = 1;
-                        send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
-                    }
-                }
-                //if none, then it's invalid
-                else {
-                    send(conn_fd2, "ERR 102", 8, 0);// send_message(conn_fd2, "ERR 102");
-                }
-            }
+        //     else {
+        //         //if it's a "Q" packet
+        //         if(strcmp(buffer, "Q") == 0) {
+        //             memset(buffer, 0, BUFFER_SIZE);
+        //             processQuery(&p2, buffer);
+        //             send(conn_fd2, buffer, strlen(buffer)+1, 0);// send_message(conn_fd2, buffer);
+        //         }
+        //         else if(buffer[0] == 'S') {
+        //             int res = processShoot(&p2, &p1, buffer);
+        //             char temp[20];
+        //             if(res) {
+        //                 sprintf(temp, "ERR %d", res);
+        //                 send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
+        //             }
+        //             //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
+        //             else {
+        //                 char result = p2.shot_history[p2.num_shots-1].result;
+        //                 int ships = p2.ships_remaining;
+        //                 sprintf(temp, "R %d %c", ships, result);
+        //                 int turn = 1;
+        //                 send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
+        //             }
+        //         }
+        //         //if none, then it's invalid
+        //         else {
+        //             send(conn_fd2, "ERR 102", 8, 0);// send_message(conn_fd2, "ERR 102");
+        //         }
+        //     }
 
-        }
+        // }
         
     }
     printf("[Server] Shutting down.\n");
 
-    freePlayer(&p1);
-    freePlayer(&p2);
+    if(initialized) {
+        freePlayer(&p1);
+        freePlayer(&p2);
+    }
     
-    // close(conn_fd1);
-    // close(conn_fd2);
+    
+    
+    
+    close(conn_fd1);
+    close(conn_fd2);
     close(listen_fd1);
     close(listen_fd2);
-
     return EXIT_SUCCESS;
 }
 
 void freePlayer(Player *player) {
+    // printf("in free player\n");
     free(player -> shot_history);
+    // printf("after freeing shothistory\n");
     int height = player -> height;
     for(int i = 0; i < height; i++) {
         free(player->board[i]);
+        // printf("freed board[%d]\n", i);
     }
+    // printf("after for loop\n");
     free(player->board);
-    free(player);
 }
 
 void initializePlayer(Player *player, int width, int height) {
-    player = malloc(sizeof(Player));
-    player -> board = malloc(player -> height * 8);
+    player -> board = malloc(height * 8);
     player -> height = height;
     player -> width = width;
     player -> shot_history = malloc(12 * width * height);
     player -> ships_remaining = 5;
     player -> num_shots = 0;
     clearPieces(player);
-
     for(int i = 0; i < height; i++) {
         player->board[i] = malloc(width * 4);
     }
@@ -491,14 +517,6 @@ void processQuery(Player *player, char *str) {
         strcat(str, temp);
     }
 }
-
-
-
-
-
-
-
-
 
 int checkBounds(Player *player, int piece_type, int piece_rotation, int column, int row) {
     int width = player->width; int height = player->height;
