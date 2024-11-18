@@ -67,11 +67,11 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    if (setsockopt(listen_fd1, SOL_SOCKET, SO_REUSEADDR, &opt1, sizeof(opt1))) {
+    if (setsockopt(listen_fd1, SOL_SOCKET, SO_REUSEADDR, &opt1, (socklen_t)sizeof(opt1))) {
         perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
         exit(EXIT_FAILURE);
     }
-    if (setsockopt(listen_fd2, SOL_SOCKET, SO_REUSEADDR, &opt2, sizeof(opt2))) {
+    if (setsockopt(listen_fd2, SOL_SOCKET, SO_REUSEADDR, &opt2, (socklen_t)sizeof(opt2))) {
         perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
         exit(EXIT_FAILURE);
     }
@@ -84,12 +84,12 @@ int main()
     address2.sin_addr.s_addr = INADDR_ANY;
     address2.sin_port = htons(PORT2);
 
-    if (bind(listen_fd1, (struct sockaddr *)&address1, sizeof(address1)) < 0)
+    if (bind(listen_fd1, (struct sockaddr *)&address1, (socklen_t)sizeof(address1)) < 0)
     {
         perror("[Server] bind() failed for port 2201.");
         exit(EXIT_FAILURE);
     }
-    if (bind(listen_fd2, (struct sockaddr *)&address2, sizeof(address2)) < 0)
+    if (bind(listen_fd2, (struct sockaddr *)&address2, (socklen_t)sizeof(address2)) < 0)
     {
         perror("[Server] bind() failed for port 2202.");
         exit(EXIT_FAILURE);
@@ -109,19 +109,22 @@ int main()
     }
     printf("[Server] Running on port %d\n", PORT2);
 
-  
-
-    if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&address1, (socklen_t *)&addrlen1)) < 0)
+    struct sockaddr_in client1, client2;
+    int client1len, client2len;
+    client1len = sizeof(client1);
+    client2len = sizeof(client2);
+    if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len)) < 0)
     {
         perror("[Server] accept() failed for port 2201.");
         exit(EXIT_FAILURE);
     }
-
-    if ((conn_fd2 = accept(listen_fd2, (struct sockaddr *)&address2, (socklen_t *)&addrlen2)) < 0)
+    if ((conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len)) < 0)
     {
         perror("[Server] accept() failed for port 2202.");
         exit(EXIT_FAILURE);
     }
+    
+    printf("after both accepts");
     
 
     bool begin = false;
@@ -137,6 +140,8 @@ int main()
         memset(buffer, 0, BUFFER_SIZE);
         //checks if game has begun yet or not, if not, then only check for "B" packets
         //This is all code for the BEGIN packet
+
+        //Player 1
         if(turn == 1) {
             read(conn_fd1, buffer, BUFFER_SIZE);
             if (strcmp(buffer, "F") == 0)
@@ -146,19 +151,7 @@ int main()
                 send_message(conn_fd2, "H 1");
                 continue;
             }
-        }
-        else {
-            read(conn_fd1, buffer, BUFFER_SIZE);
-            if (strcmp(buffer, "F") == 0)
-            {
-                gameOver = true;
-                send_message(conn_fd2, "H 0");
-                send_message(conn_fd1, "H 1");
-                continue;
-            }
-        } 
-        if(!begin) {
-            if(turn == 1) {
+            if(!begin) {
                 if(buffer[0] != 'B') send_message(conn_fd1, "ERR 100"); //not a B request
                 else if(sscanf(buffer, "B %d %d", &width, &height) != 2) {
                     width = 0; height = 0;
@@ -175,21 +168,7 @@ int main()
                     }
                 }
             }
-            else {
-                    if(strcmp(buffer, "B")) send_message(conn_fd2, "ERR 100");
-                    else {
-                        initializePlayer(&p1, width, height);
-                        initializePlayer(&p2, width, height);
-                        begin = true;
-                        turn = 1;
-                        send_message(conn_fd2, "A");
-                    }
-            }
-            continue;
-        }
-        else if(!initialize) {
-            if(turn == 1) {
-                read(conn_fd1, buffer, BUFFER_SIZE);
+            if(!initialize) {
                 if(buffer[0] != 'I') send_message(conn_fd1, "ERR 101"); //not an I request
                 else {
                     int res = processInitialize(&p1, buffer);
@@ -209,33 +188,8 @@ int main()
                     }
                 }
             }
+
             else {
-                read(conn_fd2, buffer, BUFFER_SIZE);
-                if(buffer[0] != 'I') send_message(conn_fd2, "ERR 101"); //not an I request
-                else {
-                    int res = processInitialize(&p2, buffer);
-                    if(res) {
-                        char temp[20];
-                        sprintf(temp, "ERR %d", res);
-                        send_message(conn_fd2, temp);
-                    }
-                    res = placeShips(&p2);
-                    if(!res) {
-                        send_message(conn_fd2, "ERR 303"); 
-                    }
-                    else {
-                        turn = 1;
-                        memset(buffer, 0, BUFFER_SIZE);
-                        initialize = true;
-                        send_message(conn_fd2, "A");
-                    }
-                }
-            }
-            continue;
-        }
-        else {
-            if(turn == 1) {
-                read(conn_fd1, buffer, BUFFER_SIZE);
                 //if it's a "Q" packet
                 if(strcmp(buffer, "Q") == 0) {
                     memset(buffer, 0, BUFFER_SIZE);
@@ -262,10 +216,52 @@ int main()
                 else {
                     send_message(conn_fd1, "ERR 102");
                 }
+            }   
+            
+        }
+
+        //Player 2
+        else {
+            read(conn_fd2, buffer, BUFFER_SIZE);
+            if (strcmp(buffer, "F") == 0)
+            {
+                gameOver = true;
+                send_message(conn_fd2, "H 0");
+                send_message(conn_fd1, "H 1");
+                continue;
             }
-            //for player 2
+            if(!begin) {
+                if(strcmp(buffer, "B")) send_message(conn_fd2, "ERR 100");
+                else {
+                    initializePlayer(&p1, width, height);
+                    initializePlayer(&p2, width, height);
+                    begin = true;
+                    turn = 1;
+                    send_message(conn_fd2, "A");
+                }
+            }
+            if(!initialize) {
+                if(buffer[0] != 'I') send_message(conn_fd2, "ERR 101"); //not an I request
+                else {
+                    int res = processInitialize(&p2, buffer);
+                    if(res) {
+                        char temp[20];
+                        sprintf(temp, "ERR %d", res);
+                        send_message(conn_fd2, temp);
+                    }
+                    res = placeShips(&p2);
+                    if(!res) {
+                        send_message(conn_fd2, "ERR 303"); 
+                    }
+                    else {
+                        turn = 1;
+                        memset(buffer, 0, BUFFER_SIZE);
+                        initialize = true;
+                        send_message(conn_fd2, "A");
+                    }
+                }
+            }
             else {
-                read(conn_fd2, buffer, BUFFER_SIZE);
                 //if it's a "Q" packet
                 if(strcmp(buffer, "Q") == 0) {
                     memset(buffer, 0, BUFFER_SIZE);
@@ -293,6 +289,7 @@ int main()
                     send_message(conn_fd2, "ERR 102");
                 }
             }
+
         }
         
     }
