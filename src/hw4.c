@@ -117,6 +117,8 @@ int main()
     client2len = sizeof(client2);
     conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len);
     conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len);
+    close(listen_fd1);
+    close(listen_fd2);
     // if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len)) < 0)
     // {
     //     perror("[Server] accept() failed for port 2201.");
@@ -304,10 +306,10 @@ int main()
 
     freePlayer(&p1);
     freePlayer(&p2);
+    
     close(conn_fd1);
-    close(listen_fd1);
     close(conn_fd2);
-    close(listen_fd2);
+   
 
     return EXIT_SUCCESS;
 }
