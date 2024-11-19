@@ -205,35 +205,42 @@ int main()
                     
                 }
             }
-
-            // else {
-            //     //if it's a "Q" packet
-            //     if(strcmp(buffer, "Q") == 0) {
-            //         memset(buffer, 0, BUFFER_SIZE);
-            //         processQuery(&p1, buffer);
-            //         send(conn_fd1, buffer, strlen(buffer)+1, 0);
-            //     }
-            //     else if(buffer[0] == 'S') {
-            //         int res = processShoot(&p1, &p2, buffer);
-            //         char temp[20];
-            //         if(res) {
-            //             sprintf(temp, "E %d", res);
-            //             send(conn_fd1, temp, 8, 0);
-            //         }
-            //         //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
-            //         else {
-            //             char result = p1.shot_history[p1.num_shots-1].result;
-            //             int ships = p1.ships_remaining;
-            //             sprintf(temp, "R %d %c", ships, result);
-            //             int turn = 2;
-            //             send(conn_fd1, temp, strlen(temp)+1, 0);
-            //         }
-            //     }
-            //     //if none, then it's invalid
-            //     else {
-            //         send(conn_fd1, "E 102", 8, 0);//send_message(conn_fd1, "E 102");
-            //     }
-            // }   
+            //Player 1
+            else {
+                //if it's a "Q" packet
+                if(strcmp(buffer, "Q") == 0) {
+                    memset(buffer, 0, BUFFER_SIZE);
+                    processQuery(&p1, buffer);
+                    send(conn_fd1, buffer, strlen(buffer)+1, 0);
+                }
+                else if(buffer[0] == 'S') {
+                    int res = processShoot(&p1, &p2, buffer);
+                    char temp[20];
+                    if(res) {
+                        sprintf(temp, "E %d", res);
+                        send(conn_fd1, temp, 8, 0);
+                    }
+                    //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
+                    else {
+                        char result = p1.shot_history[p1.num_shots-1].result;
+                        int ships = p1.ships_remaining;
+                        sprintf(temp, "R %d %c", ships, result);
+                        if(ships == 0) {
+                            gameOver = true;
+                            send(conn_fd1, "H 1", 3, 0);
+                            read(conn_fd2, buffer, BUFFER_SIZE);
+                            send(conn_fd2, "H 0", 3, 0);
+                            continue;
+                        }
+                        int turn = 2;
+                        send(conn_fd1, temp, strlen(temp)+1, 0);
+                    }
+                }
+                //if none, then it's invalid
+                else {
+                    send(conn_fd1, "E 102", 8, 0);//send_message(conn_fd1, "E 102");
+                }
+            }   
             
         }
 
@@ -292,34 +299,41 @@ int main()
                     }
                 }
             }
-            // else {
-            //     //if it's a "Q" packet
-            //     if(strcmp(buffer, "Q") == 0) {
-            //         memset(buffer, 0, BUFFER_SIZE);
-            //         processQuery(&p2, buffer);
-            //         send(conn_fd2, buffer, strlen(buffer)+1, 0);// send_message(conn_fd2, buffer);
-            //     }
-            //     else if(buffer[0] == 'S') {
-            //         int res = processShoot(&p2, &p1, buffer);
-            //         char temp[20];
-            //         if(res) {
-            //             sprintf(temp, "E %d", res);
-            //             send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
-            //         }
-            //         //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
-            //         else {
-            //             char result = p2.shot_history[p2.num_shots-1].result;
-            //             int ships = p2.ships_remaining;
-            //             sprintf(temp, "R %d %c", ships, result);
-            //             int turn = 1;
-            //             send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
-            //         }
-            //     }
-            //     //if none, then it's invalid
-            //     else {
-            //         send(conn_fd2, "E 102", 8, 0);// send_message(conn_fd2, "E 102");
-            //     }
-            // }
+            else {
+                //if it's a "Q" packet
+                if(strcmp(buffer, "Q") == 0) {
+                    memset(buffer, 0, BUFFER_SIZE);
+                    processQuery(&p2, buffer);
+                    send(conn_fd2, buffer, strlen(buffer)+1, 0);// send_message(conn_fd2, buffer);
+                }
+                else if(buffer[0] == 'S') {
+                    int res = processShoot(&p2, &p1, buffer);
+                    char temp[20];
+                    if(res) {
+                        sprintf(temp, "E %d", res);
+                        send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
+                    }
+                    //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
+                    else {
+                        char result = p2.shot_history[p2.num_shots-1].result;
+                        int ships = p2.ships_remaining;
+                        if(ships == 0) {
+                            gameOver = true;
+                            send(conn_fd2, "H 1", 3, 0);
+                            read(conn_fd1, buffer, BUFFER_SIZE);
+                            send(conn_fd1, "H 0", 3, 0);
+                            continue;
+                        }
+                        sprintf(temp, "R %d %c", ships, result);
+                        int turn = 1;
+                        send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
+                    }
+                }
+                //if none, then it's invalid
+                else {
+                    send(conn_fd2, "E 102", 8, 0);// send_message(conn_fd2, "E 102");
+                }
+            }
 
         }
         
