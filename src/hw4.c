@@ -145,32 +145,21 @@ int main()
     bool gameOver = false;
     while (!gameOver)
     {
-
-        // printf("in while loop");
-        
-        //checks if game has begun yet or not, if not, then only check for "B" packets
-        //This is all code for the BEGIN packet
-
-        //Player 1
+        memset(buffer, 0, BUFFER_SIZE);
         if(turn == 1) {
-            printf("\n");
-            printf("in turn 1\n");
-            printf("Buffer is %s\n", buffer);
+            // printf("\n");
+            // printf("in turn 1\n");
+            // printf("Buffer is %s\n", buffer);
             
-            if(strcmp(buffer, "F") == 0) {
-                gameOver = true;
-                // read(conn_fd1, buffer, BUFFER_SIZE);
-                send(conn_fd1, "H 1", 4, 0);
-                continue;
-            }
-            memset(buffer, 0, BUFFER_SIZE);
             read(conn_fd1, buffer, BUFFER_SIZE);
             if (strcmp(buffer, "F") == 0)
             {
                 // send_message(conn_fd1, "H 0");
                 send(conn_fd1, "H 0", 4, 0);
+                read(conn_fd2, buffer, BUFFER_SIZE);
+                send(conn_fd2, "H 1", 4, 0);
                 // send_message(conn_fd2, "H 1");
-                turn = 2;
+                gameOver = true;
                 continue;
             }
             else if(!begin) {
@@ -250,22 +239,18 @@ int main()
 
         // //Player 2
         else {
-            printf("\n");
-            printf("in turn 2\n");
-            printf("Buffer is %s\n", buffer);
-            
-            if(strcmp(buffer, "F") == 0) {
-                gameOver = true;
-                // read(conn_fd2, buffer, BUFFER_SIZE);
-                send(conn_fd2, "H 1", 4, 0);
-                continue;
-            }
-            memset(buffer, 0, BUFFER_SIZE);
+            // printf("\n");
+            // printf("in turn 2\n");
+            // printf("Buffer is %s\n", buffer);
             read(conn_fd2, buffer, BUFFER_SIZE);
             if (strcmp(buffer, "F") == 0)
             {
-                send(conn_fd2, "H 0", 4, 0);//send_message(conn_fd2, "H 0");
-                turn = 1;
+                // send_message(conn_fd1, "H 0");
+                send(conn_fd2, "H 0", 4, 0);
+                read(conn_fd1, buffer, BUFFER_SIZE);
+                send(conn_fd1, "H 1", 4, 0);
+                // send_message(conn_fd2, "H 1");
+                gameOver = true;
                 continue;
             }
             else if(!begin) {
