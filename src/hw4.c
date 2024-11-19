@@ -58,21 +58,21 @@ int main()
     // Create socket
     if ((listen_fd1 = socket(AF_INET, SOCK_STREAM, 0)) <= 0)
     {
-        pEor("socket 1 failed");
+        // printEror("socket 1 failed");
         exit(EXIT_FAILURE);
     }
     if ((listen_fd2 = socket(AF_INET, SOCK_STREAM, 0)) <= 0)
     {
-        pEor("socket 2 failed");
+        // pEor("socket 2 failed");
         exit(EXIT_FAILURE);
     }
 
     if (setsockopt(listen_fd1, SOL_SOCKET, SO_REUSEADDR, &opt1, (socklen_t)sizeof(opt1))) {
-        pEor("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
+        // pEor("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
         exit(EXIT_FAILURE);
     }
     if (setsockopt(listen_fd2, SOL_SOCKET, SO_REUSEADDR, &opt2, (socklen_t)sizeof(opt2))) {
-        pEor("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
+        // pEor("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
         exit(EXIT_FAILURE);
     }
 
@@ -88,25 +88,25 @@ int main()
 
     if (bind(listen_fd1, (struct sockaddr *)&address1, (socklen_t)sizeof(address1)) < 0)
     {
-        pEor("[Server] bind() failed for port 2201.");
+        // pEor("[Server] bind() failed for port 2201.");
         exit(EXIT_FAILURE);
     }
     if (bind(listen_fd2, (struct sockaddr *)&address2, (socklen_t)sizeof(address2)) < 0)
     {
-        pEor("[Server] bind() failed for port 2202.");
+        // pEor("[Server] bind() failed for port 2202.");
         exit(EXIT_FAILURE);
     }
 
     if (listen(listen_fd1, 1) < 0)
     {
-        pEor("[Server] listen() failed for port 2201.");
+        // pEor("[Server] listen() failed for port 2201.");
         exit(EXIT_FAILURE);
     }
     printf("[Server] Running on port %d\n", PORT1);
 
     if (listen(listen_fd2, 1) < 0)
     {
-        pEor("[Server] listen() failed for port 2202.");
+        // pEor("[Server] listen() failed for port 2202.");
         exit(EXIT_FAILURE);
     }
     printf("[Server] Running on port %d\n", PORT2);
@@ -121,18 +121,18 @@ int main()
     printf("Client 1 accepted\n");
     conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len);
     
-    if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len)) < 0)
-    {
-        pEor("[Server] accept() failed for port 2201.");
-        exit(EXIT_FAILURE);
-    }
-    if ((conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len)) < 0)
-    {
-        pEor("[Server] accept() failed for port 2202.");
-        exit(EXIT_FAILURE);
-    }
+    // if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len)) < 0)
+    // {
+    //     // pEor("[Server] accept() failed for port 2201.");
+    //     exit(EXIT_FAILURE);
+    // }
+    // if ((conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len)) < 0)
+    // {
+    //     // pEor("[Server] accept() failed for port 2202.");
+    //     exit(EXIT_FAILURE);
+    // }
     
-    printf("after both accepts");
+    printf("after both accepts\n");
     
 
     bool begin = false;
@@ -215,34 +215,34 @@ int main()
                 }
             }
 
-            else {
-                //if it's a "Q" packet
-                if(strcmp(buffer, "Q") == 0) {
-                    memset(buffer, 0, BUFFER_SIZE);
-                    processQuery(&p1, buffer);
-                    send(conn_fd1, buffer, strlen(buffer)+1, 0);
-                }
-                else if(buffer[0] == 'S') {
-                    int res = processShoot(&p1, &p2, buffer);
-                    char temp[20];
-                    if(res) {
-                        sprintf(temp, "E %d", res);
-                        send(conn_fd1, temp, 8, 0);
-                    }
-                    //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
-                    else {
-                        char result = p1.shot_history[p1.num_shots-1].result;
-                        int ships = p1.ships_remaining;
-                        sprintf(temp, "R %d %c", ships, result);
-                        int turn = 2;
-                        send(conn_fd1, temp, strlen(temp)+1, 0);
-                    }
-                }
-                //if none, then it's invalid
-                else {
-                    send(conn_fd1, "E 102", 8, 0);//send_message(conn_fd1, "E 102");
-                }
-            }   
+            // else {
+            //     //if it's a "Q" packet
+            //     if(strcmp(buffer, "Q") == 0) {
+            //         memset(buffer, 0, BUFFER_SIZE);
+            //         processQuery(&p1, buffer);
+            //         send(conn_fd1, buffer, strlen(buffer)+1, 0);
+            //     }
+            //     else if(buffer[0] == 'S') {
+            //         int res = processShoot(&p1, &p2, buffer);
+            //         char temp[20];
+            //         if(res) {
+            //             sprintf(temp, "E %d", res);
+            //             send(conn_fd1, temp, 8, 0);
+            //         }
+            //         //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
+            //         else {
+            //             char result = p1.shot_history[p1.num_shots-1].result;
+            //             int ships = p1.ships_remaining;
+            //             sprintf(temp, "R %d %c", ships, result);
+            //             int turn = 2;
+            //             send(conn_fd1, temp, strlen(temp)+1, 0);
+            //         }
+            //     }
+            //     //if none, then it's invalid
+            //     else {
+            //         send(conn_fd1, "E 102", 8, 0);//send_message(conn_fd1, "E 102");
+            //     }
+            // }   
             
         }
 
@@ -302,34 +302,34 @@ int main()
                     }
                 }
             }
-            else {
-                //if it's a "Q" packet
-                if(strcmp(buffer, "Q") == 0) {
-                    memset(buffer, 0, BUFFER_SIZE);
-                    processQuery(&p2, buffer);
-                    send(conn_fd2, buffer, strlen(buffer)+1, 0);// send_message(conn_fd2, buffer);
-                }
-                else if(buffer[0] == 'S') {
-                    int res = processShoot(&p2, &p1, buffer);
-                    char temp[20];
-                    if(res) {
-                        sprintf(temp, "E %d", res);
-                        send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
-                    }
-                    //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
-                    else {
-                        char result = p2.shot_history[p2.num_shots-1].result;
-                        int ships = p2.ships_remaining;
-                        sprintf(temp, "R %d %c", ships, result);
-                        int turn = 1;
-                        send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
-                    }
-                }
-                //if none, then it's invalid
-                else {
-                    send(conn_fd2, "E 102", 8, 0);// send_message(conn_fd2, "E 102");
-                }
-            }
+            // else {
+            //     //if it's a "Q" packet
+            //     if(strcmp(buffer, "Q") == 0) {
+            //         memset(buffer, 0, BUFFER_SIZE);
+            //         processQuery(&p2, buffer);
+            //         send(conn_fd2, buffer, strlen(buffer)+1, 0);// send_message(conn_fd2, buffer);
+            //     }
+            //     else if(buffer[0] == 'S') {
+            //         int res = processShoot(&p2, &p1, buffer);
+            //         char temp[20];
+            //         if(res) {
+            //             sprintf(temp, "E %d", res);
+            //             send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
+            //         }
+            //         //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
+            //         else {
+            //             char result = p2.shot_history[p2.num_shots-1].result;
+            //             int ships = p2.ships_remaining;
+            //             sprintf(temp, "R %d %c", ships, result);
+            //             int turn = 1;
+            //             send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
+            //         }
+            //     }
+            //     //if none, then it's invalid
+            //     else {
+            //         send(conn_fd2, "E 102", 8, 0);// send_message(conn_fd2, "E 102");
+            //     }
+            // }
 
         }
         
