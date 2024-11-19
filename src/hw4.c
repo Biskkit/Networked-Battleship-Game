@@ -53,7 +53,7 @@ int main()
     int addrlen1 = sizeof(address1);
     int addrlen2 = sizeof(address2);
     char buffer[BUFFER_SIZE] = {0};
-    int opt1 = 0; int opt2 = 0;
+    int opt1 = 1; int opt2 = 1;
 
     // Create socket
     if ((listen_fd1 = socket(AF_INET, SOCK_STREAM, 0)) <= 0)
@@ -339,6 +339,8 @@ int main()
     }
     printf("[Server] Shutting down.\n");
 
+    
+
     if(initialized) {
         freePlayer(&p1);
         freePlayer(&p2);
@@ -351,6 +353,7 @@ int main()
     close(conn_fd2);
     close(listen_fd1);
     close(listen_fd2);
+    printf("closed all ports\n");
     return EXIT_SUCCESS;
 }
 
