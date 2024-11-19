@@ -58,21 +58,21 @@ int main()
     // Create socket
     if ((listen_fd1 = socket(AF_INET, SOCK_STREAM, 0)) <= 0)
     {
-        perror("socket 1 failed");
+        pEor("socket 1 failed");
         exit(EXIT_FAILURE);
     }
     if ((listen_fd2 = socket(AF_INET, SOCK_STREAM, 0)) <= 0)
     {
-        perror("socket 2 failed");
+        pEor("socket 2 failed");
         exit(EXIT_FAILURE);
     }
 
     if (setsockopt(listen_fd1, SOL_SOCKET, SO_REUSEADDR, &opt1, (socklen_t)sizeof(opt1))) {
-        perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
+        pEor("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
         exit(EXIT_FAILURE);
     }
     if (setsockopt(listen_fd2, SOL_SOCKET, SO_REUSEADDR, &opt2, (socklen_t)sizeof(opt2))) {
-        perror("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
+        pEor("setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))");
         exit(EXIT_FAILURE);
     }
 
@@ -88,25 +88,25 @@ int main()
 
     if (bind(listen_fd1, (struct sockaddr *)&address1, (socklen_t)sizeof(address1)) < 0)
     {
-        perror("[Server] bind() failed for port 2201.");
+        pEor("[Server] bind() failed for port 2201.");
         exit(EXIT_FAILURE);
     }
     if (bind(listen_fd2, (struct sockaddr *)&address2, (socklen_t)sizeof(address2)) < 0)
     {
-        perror("[Server] bind() failed for port 2202.");
+        pEor("[Server] bind() failed for port 2202.");
         exit(EXIT_FAILURE);
     }
 
     if (listen(listen_fd1, 1) < 0)
     {
-        perror("[Server] listen() failed for port 2201.");
+        pEor("[Server] listen() failed for port 2201.");
         exit(EXIT_FAILURE);
     }
     printf("[Server] Running on port %d\n", PORT1);
 
     if (listen(listen_fd2, 1) < 0)
     {
-        perror("[Server] listen() failed for port 2202.");
+        pEor("[Server] listen() failed for port 2202.");
         exit(EXIT_FAILURE);
     }
     printf("[Server] Running on port %d\n", PORT2);
@@ -123,12 +123,12 @@ int main()
     
     if ((conn_fd1 = accept(listen_fd1, (struct sockaddr *)&client1, (socklen_t *)&client1len)) < 0)
     {
-        perror("[Server] accept() failed for port 2201.");
+        pEor("[Server] accept() failed for port 2201.");
         exit(EXIT_FAILURE);
     }
     if ((conn_fd2 = accept(listen_fd2, (struct sockaddr *)&client2, (socklen_t *)&client2len)) < 0)
     {
-        perror("[Server] accept() failed for port 2202.");
+        pEor("[Server] accept() failed for port 2202.");
         exit(EXIT_FAILURE);
     }
     
@@ -174,15 +174,15 @@ int main()
                 continue;
             }
             else if(!begin) {
-                if(buffer[0] != 'B') send(conn_fd1, "ERR 100", 8, 0);//send_message(conn_fd1, "ERR 100"); //not a B request
+                if(buffer[0] != 'B') send(conn_fd1, "E 100", 8, 0);//send_message(conn_fd1, "E 100"); //not a B request
                 else if(sscanf(buffer, "B %d %d", &width, &height) != 2) {
                     width = 0; height = 0;
-                    send(conn_fd1, "ERR 200", 8, 0);//send_message(conn_fd1, "ERR 200"); //not valid parameters of B request
+                    send(conn_fd1, "E 200", 8, 0);//send_message(conn_fd1, "E 200"); //not valid parameters of B request
                 } 
                 else {
                     if(width < 10 || height < 10) {
                         width = 0; height = 0; //just in case, height and width are set back to 0
-                        send(conn_fd1, "ERR 200", 8, 0);//send_message(conn_fd1, "ERR 200"); //parameters are invalid size (at least 10x10)
+                        send(conn_fd1, "E 200", 8, 0);//send_message(conn_fd1, "E 200"); //parameters are invalid size (at least 10x10)
                     } 
                     else {
                         turn = 2;
@@ -191,19 +191,19 @@ int main()
                 }
             }
             else if(!initialize) {
-                if(buffer[0] != 'I') send(conn_fd1, "ERR 101", 8, 0);//send_message(conn_fd1, "ERR 101"); //not an I request
+                if(buffer[0] != 'I') send(conn_fd1, "E 101", 8, 0);//send_message(conn_fd1, "E 101"); //not an I request
                 else {
                     int res = processInitialize(&p1, buffer);
                     if(res) {
                         char temp[20];
-                        sprintf(temp, "ERR %d", res);
+                        sprintf(temp, "E %d", res);
                         send(conn_fd1, temp, 8, 0);
                         //send_message(conn_fd1, temp);
                     }
                     else {
                         res = placeShips(&p1);
                         if(!res) {
-                            send(conn_fd1, "ERR 303", 8, 0);//send_message(conn_fd1, "ERR 303"); 
+                            send(conn_fd1, "E 303", 8, 0);//send_message(conn_fd1, "E 303"); 
                         }
                         else {
                             turn = 2;
@@ -226,7 +226,7 @@ int main()
                     int res = processShoot(&p1, &p2, buffer);
                     char temp[20];
                     if(res) {
-                        sprintf(temp, "ERR %d", res);
+                        sprintf(temp, "E %d", res);
                         send(conn_fd1, temp, 8, 0);
                     }
                     //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
@@ -240,7 +240,7 @@ int main()
                 }
                 //if none, then it's invalid
                 else {
-                    send(conn_fd1, "ERR 102", 8, 0);//send_message(conn_fd1, "ERR 102");
+                    send(conn_fd1, "E 102", 8, 0);//send_message(conn_fd1, "E 102");
                 }
             }   
             
@@ -268,7 +268,7 @@ int main()
             }
             else if(!begin) {
                 // int width, height;
-                if(strcmp(buffer, "B")) send(conn_fd2, "ERR 100", 8, 0);//send_message(conn_fd2, "ERR 100");
+                if(strcmp(buffer, "B")) send(conn_fd2, "E 100", 8, 0);//send_message(conn_fd2, "E 100");
                 else {
                     initializePlayer(&p1, width, height);
                     initializePlayer(&p2, width, height);
@@ -280,18 +280,18 @@ int main()
                 }
             }
             else if(!initialize) {
-                if(buffer[0] != 'I') send(conn_fd2, "ERR 101", 8, 0);//send_message(conn_fd2, "ERR 101"); //not an I request
+                if(buffer[0] != 'I') send(conn_fd2, "E 101", 8, 0);//send_message(conn_fd2, "E 101"); //not an I request
                 else {
                     int res = processInitialize(&p2, buffer);
                     if(res) {
                         char temp[20];
-                        sprintf(temp, "ERR %d", res);
+                        sprintf(temp, "E %d", res);
                         send(conn_fd2, temp, strlen(temp)+1, 0);
                     }
                     else {
                         res = placeShips(&p2);
                         if(!res) {
-                            send(conn_fd2, "ERR 303", 8, 0);//send_message(conn_fd2, "ERR 303"); 
+                            send(conn_fd2, "E 303", 8, 0);//send_message(conn_fd2, "E 303"); 
                         }
                         else {
                             turn = 1;
@@ -313,7 +313,7 @@ int main()
                     int res = processShoot(&p2, &p1, buffer);
                     char temp[20];
                     if(res) {
-                        sprintf(temp, "ERR %d", res);
+                        sprintf(temp, "E %d", res);
                         send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
                     }
                     //if res == 0, that means it's a success, so make the string to return "R (ships_remaning) (miss or hit)"
@@ -327,7 +327,7 @@ int main()
                 }
                 //if none, then it's invalid
                 else {
-                    send(conn_fd2, "ERR 102", 8, 0);// send_message(conn_fd2, "ERR 102");
+                    send(conn_fd2, "E 102", 8, 0);// send_message(conn_fd2, "E 102");
                 }
             }
 
@@ -461,17 +461,17 @@ int processInitialize(Player *player, char *buffer) {
     if(i != 20) return 201;
 
     p = (buffer + 2);
-    int cur_error = 999;
+    int cur_Eor = 999;
     for(int i = 0; i < 5; i++) {
         int value = sscanf(p, "%d %d %d %d", &piece_type, &piece_rotation, &column, &row);
         if(value != 4) return 201;
         if(piece_type <= 0 || piece_type > 7) return 300;
         else if(piece_rotation <= 0 || piece_rotation > 4) {
-            if(cur_error > 301) cur_error = 301;
+            if(cur_Eor > 301) cur_Eor = 301;
         } 
         else {
             if(checkBounds(player, piece_type, piece_rotation, column, row)) {
-                if(cur_error > 302) cur_error = 302;
+                if(cur_Eor > 302) cur_Eor = 302;
             }
         }
         for(int i = 0; i < 4; i++) {
@@ -480,7 +480,7 @@ int processInitialize(Player *player, char *buffer) {
             p++;
         }
     }
-    if(cur_error != 999) return cur_error;
+    if(cur_Eor != 999) return cur_Eor;
     
     
     p = (buffer + 2);
