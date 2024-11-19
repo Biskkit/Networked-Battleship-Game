@@ -232,9 +232,11 @@ int main()
                         sprintf(temp, "R %d %c", ships, result);
                         if(ships == 0) {
                             gameOver = true;
-                            send(conn_fd1, "H 1", 3, 0);
+                            send(conn_fd1, "R 0 H", 3, 0);
                             read(conn_fd2, buffer, BUFFER_SIZE);
                             send(conn_fd2, "H 0", 3, 0);
+                            read(conn_fd1, buffer, BUFFER_SIZE);
+                            send(conn_fd1, "H 1", 3, 0);
                             continue;
                         }
                         turn = 2;
@@ -322,11 +324,13 @@ int main()
                     else {
                         char result = p2.shot_history[p2.num_shots-1].result;
                         int ships = p2.ships_remaining;
-                        if(ships == 0) {
+                       if(ships == 0) {
                             gameOver = true;
-                            send(conn_fd2, "H 1", 3, 0);
+                            send(conn_fd2, "R 0 H", 3, 0);
                             read(conn_fd1, buffer, BUFFER_SIZE);
                             send(conn_fd1, "H 0", 3, 0);
+                            read(conn_fd2, buffer, BUFFER_SIZE);
+                            send(conn_fd2, "H 1", 3, 0);
                             continue;
                         }
                         sprintf(temp, "R %d %c", ships, result);
