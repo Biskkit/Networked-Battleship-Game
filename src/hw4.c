@@ -466,7 +466,7 @@ int processBegin(char *buffer) {
         if(*p != '\0') p++;
     }
 
-    if(i != 2) return 201;
+    if(i != 2) return 200;
     return 0;
 }
 
