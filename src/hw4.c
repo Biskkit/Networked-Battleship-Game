@@ -194,6 +194,7 @@ int main()
                 if(buffer[0] != 'I') send(conn_fd1, "E 101", 8, 0);//send_message(conn_fd1, "E 101"); //not an I request
                 else {
                     int res = processInitialize(&p1, buffer);
+                    printf("After processinitialize Res: %d\n", res);
                     if(res) {
                         char temp[20];
                         sprintf(temp, "E %d", res);
@@ -202,6 +203,7 @@ int main()
                     }
                     else {
                         res = placeShips(&p1);
+                        printf("Else Res is %d\n", res);
                         if(!res) {
                             send(conn_fd1, "E 303", 8, 0);//send_message(conn_fd1, "E 303"); 
                         }
@@ -290,7 +292,7 @@ int main()
                     }
                     else {
                         res = placeShips(&p2);
-                        if(!res) {
+                        if(res == 0) {
                             send(conn_fd2, "E 303", 8, 0);//send_message(conn_fd2, "E 303"); 
                         }
                         else {
@@ -470,7 +472,9 @@ int processInitialize(Player *player, char *buffer) {
             if(cur_Eor > 301) cur_Eor = 301;
         } 
         else {
-            if(checkBounds(player, piece_type, piece_rotation, column, row)) {
+            int value = checkBounds(player, piece_type, piece_rotation, column, row);
+            printf("checkBounds is %d for ship %d\n", value, i+1);
+            if(value) {
                 if(cur_Eor > 302) cur_Eor = 302;
             }
         }
@@ -488,10 +492,10 @@ int processInitialize(Player *player, char *buffer) {
     for(int i = 0; i < 5; i++) {
         int value = sscanf(p, "%d %d %d %d", &piece_type, &piece_rotation, &column, &row);
         
-    //     player -> pieces[i][0] = piece_type;
-    //     player -> pieces[i][1] = piece_rotation;
-    //     player -> pieces[i][2] = column;
-    //     player -> pieces[i][3] = row;
+        player -> pieces[i][0] = piece_type;
+        player -> pieces[i][1] = piece_rotation;
+        player -> pieces[i][2] = column;
+        player -> pieces[i][3] = row;
 
         for(int i = 0; i < 4; i++) {
             while(*p != ' ' && *p != '\0') p++;
@@ -520,6 +524,7 @@ void processQuery(Player *player, char *str) {
 
 int checkBounds(Player *player, int piece_type, int piece_rotation, int column, int row) {
     int width = player->width; int height = player->height;
+    printf("in check bounds with width %d and height %d. Column: %d Row: %d Piece:%d Rotation:%d\n", width, height, column, row, piece_type, piece_rotation);
     if(column < 0 || column >= player -> width) return 302;
     if(row < 0 || row >= player->height) return 302;
     switch(piece_type) {
@@ -551,11 +556,18 @@ int checkBounds(Player *player, int piece_type, int piece_rotation, int column, 
             break;
         //shape 4
         case 4:
+            printf("in case 4 checkBOunds with rotation %d\n", piece_rotation);
             if(piece_rotation == 1 || piece_rotation == 3) {
-                if(row > height-3) return 302;
-                if(column > width-2) return 302;
+                if(row > height-3) {
+                    printf("invalid row\n");
+                    return 302;
+                } 
+                if(column > width-2) {
+                    printf("invalid column\n");
+                    return 302;
+                } 
             }
-            if(piece_rotation == 2) {
+            else if(piece_rotation == 2) {
                 if(column > width - 3) return 302;
                 if(row > height - 2) return 302;
             }
@@ -591,6 +603,7 @@ int checkBounds(Player *player, int piece_type, int piece_rotation, int column, 
             }
             break;
         default:
+            printf("in default\n");
             if(piece_rotation == 1 || piece_rotation == 3) {
                 if(column + 3 > width) return 302;
                 
@@ -651,6 +664,7 @@ int placeShip(Player *player, int piece_type, int piece_rotation, int column, in
                     if(player->board[r+row][column] != 0) {
                         clearBoard(player);
                         clearPieces(player);
+                        printf("Ship %d, Shape 2, rotation 1 or 2, board not empty\n", cur_ship);
                         return 0;
                     }
                     player->board[r+row][column] = cur_ship;
@@ -730,9 +744,11 @@ int placeShip(Player *player, int piece_type, int piece_rotation, int column, in
                             if(player->board[r + row][c + column]  != 0) {
                                 clearBoard(player);
                                 clearPieces(player);
+                                printf("In shape 4 rotation 1 eror with ship %d\n", cur_ship);
                                 return 0;
                             }
                             player->board[r+row][c+column] = cur_ship;
+                            printf("In c== 0Ship %d inserted at col %d and row %d\n", cur_ship, c+column, r+row);
                         }
                     }
                     else {
@@ -742,6 +758,7 @@ int placeShip(Player *player, int piece_type, int piece_rotation, int column, in
                             return 0;
                         }
                         player->board[2+row][c+column] = cur_ship;
+                        printf("Else Ship %d inserted at col %d and row %d\n", cur_ship, c+column, 2+row);
                     }
                 }
                
