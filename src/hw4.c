@@ -237,7 +237,7 @@ int main()
                             send(conn_fd2, "H 0", 3, 0);
                             continue;
                         }
-                        int turn = 2;
+                        turn = 2;
                         send(conn_fd1, temp, strlen(temp)+1, 0);
                     }
                 }
@@ -330,7 +330,7 @@ int main()
                             continue;
                         }
                         sprintf(temp, "R %d %c", ships, result);
-                        int turn = 1;
+                        turn = 1;
                         send(conn_fd2, temp, strlen(temp)+1, 0);// send_message(conn_fd2, temp);
                     }
                 }
