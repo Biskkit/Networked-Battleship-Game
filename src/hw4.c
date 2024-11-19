@@ -270,7 +270,10 @@ int main()
             }
             else if(!begin) {
                 // int width, height;
-                if(strcmp(buffer, "B")) send(conn_fd2, "E 100", 8, 0);//send_message(conn_fd2, "E 100");
+                if(strcmp(buffer, "B")) {
+                    if(buffer[0] != 'B') send(conn_fd2, "E 100", 8, 0);//send_message(conn_fd2, "E 100");
+                    else send(conn_fd2, "E 200", 8, 0);
+                } 
                 else {
                     initializePlayer(&p1, width, height);
                     initializePlayer(&p2, width, height);
