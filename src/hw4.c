@@ -44,6 +44,7 @@ int checkBounds(Player *player, int piece_type, int piece_rotation, int column, 
 int numOfShips(Player *pOther);
 int alreadyShot(Player *pShooting, int row, int col);
 void freePlayer(Player *player);
+int processBegin(char *buffer);
 
 int main()
 {
@@ -163,21 +164,25 @@ int main()
                 continue;
             }
             else if(!begin) {
-                if(buffer[0] != 'B') send(conn_fd1, "E 100", 8, 0);//send_message(conn_fd1, "E 100"); //not a B request
-                else if(sscanf(buffer, "B %d %d", &width, &height) != 2) {
-                    width = 0; height = 0;
-                    send(conn_fd1, "E 200", 8, 0);//send_message(conn_fd1, "E 200"); //not valid parameters of B request
-                } 
+                int res = processBegin(buffer);
+                if(res) {
+                    char temp[20];
+                    sprintf(temp, "E %d", res);
+                    send(conn_fd1, temp, strlen(temp) + 1, 0);
+                }
                 else {
+                    printf("in else with buffer: %s\n", buffer);
+                    sscanf(buffer, "B %d %d", &width, &height);
                     if(width < 10 || height < 10) {
                         width = 0; height = 0; //just in case, height and width are set back to 0
-                        send(conn_fd1, "E 200", 8, 0);//send_message(conn_fd1, "E 200"); //parameters are invalid size (at least 10x10)
+                        send(conn_fd1, "E 200", 6, 0);//send_message(conn_fd1, "E 200"); //parameters are invalid size (at least 10x10)
                     } 
                     else {
                         turn = 2;
                         send(conn_fd1, "A", 2, 0); //if everything's good, then height and width are set correct
                     }
                 }
+                
             }
             else if(!initialize) {
                 if(buffer[0] != 'I') send(conn_fd1, "E 101", 8, 0);//send_message(conn_fd1, "E 101"); //not an I request
@@ -187,7 +192,7 @@ int main()
                     if(res) {
                         char temp[20];
                         sprintf(temp, "E %d", res);
-                        send(conn_fd1, temp, 8, 0);
+                        send(conn_fd1, temp, strlen(temp) + 1, 0);
                         //send_message(conn_fd1, temp);
                     }
                     else {
@@ -447,6 +452,21 @@ int alreadyShot(Player *pShooting, int row, int col) {
     for(int i = 0; i < pShooting -> num_shots; i++) {
         if(pShooting->shot_history[i].col == col && pShooting->shot_history[i].row == row) return 1;
     }
+    return 0;
+}
+
+int processBegin(char *buffer) {
+    if(buffer[0] != 'B') return 100;
+    if(strlen(buffer) < 3) return 200;
+    char *p = (buffer + 2);
+    int i = 0;
+    while(*p != '\0') {
+        i++;
+          while(*p != ' ' && *p != '\0') {p++;}
+        if(*p != '\0') p++;
+    }
+
+    if(i != 2) return 201;
     return 0;
 }
 
