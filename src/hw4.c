@@ -1164,7 +1164,7 @@ int placeShip(Player *player, int piece_type, int piece_rotation, int column, in
         case 1:
             for (int c = 0; c < 2; c++)
             {
-                if (c = 1)
+                if (c == 1)
                 {
                     for (int r = 0; r < 3; r++)
                     {
@@ -1287,24 +1287,24 @@ int placeShip(Player *player, int piece_type, int piece_rotation, int column, in
                 {
                     for (int c = 0; c < 3; c++)
                     {
-                        if (player->board[row][column + c] == 1)
+                        if (player->board[row][column + c] != 0)
                         {
                             clearBoard(player);
                             clearPieces(player);
                             return 0;
                         }
-                        player->board[row][column + c] = 1;
+                        player->board[row][column + c] = cur_ship;
                     }
                 }
                 else
                 {
-                    if (player->board[r + row][column + 1] == 1)
+                    if (player->board[r + row][column + 1] != 0)
                     {
                         clearBoard(player);
                         clearPieces(player);
                         return 0;
                     }
-                    player->board[r + row][column + 1] = 1;
+                    player->board[r + row][column + 1] = cur_ship;
                 }
             }
             break;
@@ -1316,24 +1316,24 @@ int placeShip(Player *player, int piece_type, int piece_rotation, int column, in
                 {
                     for (int r = 0; r < 3; r++)
                     {
-                        if (player->board[row + r][column + c] == 1)
+                        if (player->board[row + r - 1][column + c] != 0)
                         {
                             clearBoard(player);
                             clearPieces(player);
                             return 0;
                         }
-                        player->board[row + r][column + c] = 1;
+                        player->board[row + r - 1][column + c] = cur_ship;
                     }
                 }
                 else
                 {
-                    if (player->board[row + 1][column + c] == 1)
+                    if (player->board[row][column] != 0)
                     {
                         clearBoard(player);
                         clearPieces(player);
                         return 0;
                     }
-                    player->board[row + 1][column + c] = 1;
+                    player->board[row][column] = cur_ship;
                 }
             }
             break;
@@ -1345,24 +1345,24 @@ int placeShip(Player *player, int piece_type, int piece_rotation, int column, in
                 {
                     for (int c = 0; c < 3; c++)
                     {
-                        if (player->board[r + row][column + c] == 1)
+                        if (player->board[row][column + c] != 0)
                         {
                             clearBoard(player);
                             clearPieces(player);
                             return 0;
                         }
-                        player->board[r + row][column + c] = 1;
+                        player->board[row][column + c] = cur_ship;
                     }
                 }
                 else
                 {
-                    if (player->board[row][column + 1] == 1)
+                    if (player->board[row-1][column + 1] != 0)
                     {
                         clearBoard(player);
                         clearPieces(player);
                         return 0;
                     }
-                    player->board[row][column + 1] = 1;
+                    player->board[row-1][column + 1] = cur_ship;
                 }
             }
             break;
@@ -1374,24 +1374,24 @@ int placeShip(Player *player, int piece_type, int piece_rotation, int column, in
                 {
                     for (int r = 0; r < 3; r++)
                     {
-                        if (player->board[row + r][column + c] == 1)
+                        if (player->board[row + r][column + c] != 0)
                         {
                             clearBoard(player);
                             clearPieces(player);
                             return 0;
                         }
-                        player->board[row + r][column + c] = 1;
+                        player->board[row + r][column + c] = cur_ship;
                     }
                 }
                 else
                 {
-                    if (player->board[row + 1][column + c] == 1)
+                    if (player->board[row + 1][column + c] != 0)
                     {
                         clearBoard(player);
                         clearPieces(player);
                         return 0;
                     }
-                    player->board[row + 1][column + c] = 1;
+                    player->board[row + 1][column + c] = cur_ship;
                 }
             }
         }
